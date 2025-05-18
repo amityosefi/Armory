@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { AgGridReact } from 'ag-grid-react';
 import TabsNavigation from './TabsNavigation';
@@ -19,6 +19,8 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
   const [columnDefs, setColumnDefs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const gridRef = useRef<any>(null);
   const spreadsheetId = DEFAULT_SPREADSHEET_ID;
 
   // Make sure groupIndex is valid
@@ -33,6 +35,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
     
     setLoading(true);
     setError(null);
+    setSelectedRow(null);
 
     try {
       const encodedRange = encodeURIComponent(selectedSheet.range);
@@ -53,6 +56,17 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
 
       // Process the data using our service
       const { columnDefs: cols, rowData } = GoogleSheetsService.processSheetData(result);
+
+      // Add checkbox selection to first column
+      if (cols.length > 0) {
+        cols[0] = {
+          ...cols[0],
+          checkboxSelection: true,
+          headerCheckboxSelection: false,
+          width: 60,
+          flex: 0,
+        };
+      }
 
       setColumnDefs(cols);
       setSheetData(rowData);
@@ -98,6 +112,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
       ) : sheetData.length > 0 ? (
         <div className="ag-theme-alpine w-full h-[70vh] ag-rtl">
           <AgGridReact
+            ref={gridRef}
             columnDefs={columnDefs}
             rowData={sheetData}
             domLayout="normal"
@@ -107,7 +122,42 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
               minWidth: 100,
               resizable: true
             }}
+            rowSelection="single"
+            onRowSelected={(event) => {
+              // We're only interested in selected rows
+              if (event.node && event.node.isSelected()) {
+                setSelectedRow(event.data);
+                console.log('Selected row:', event.data);
+              } else {
+                // When a checkbox is unchecked, check if any other row is selected
+                // before clearing the selectedRow state
+                if (gridRef.current) {
+                  const selectedNodes = gridRef.current.api.getSelectedNodes();
+                  if (selectedNodes.length === 0) {
+                    setSelectedRow(null);
+                  }
+                }
+              }
+            }}
+            onGridReady={(params) => {
+              // Store grid API reference when grid is ready
+              gridRef.current = params;
+            }}
           />
+          
+          {selectedRow && groupIndex === 0 && (
+            <div className="mt-4 flex justify-center">
+              <button 
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                onClick={() => {
+                  console.log('Action for selected row:', selectedRow);
+                  // Keep the selection active when performing the action
+                }}
+              >
+                פעולה על השורה הנבחרת
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-white shadow-lg rounded-lg p-6 text-center">
