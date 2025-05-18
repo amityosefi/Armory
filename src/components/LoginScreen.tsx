@@ -9,6 +9,8 @@ interface LoginScreenProps {
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const login = useGoogleLogin({
     onSuccess: (codeResponse: TokenResponse) => {
+      // Save the token response to localStorage
+      localStorage.setItem('googleAuthToken', JSON.stringify(codeResponse));
       onLoginSuccess(codeResponse);
     },
     onError: (error) => {

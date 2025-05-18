@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { TokenResponse } from '@react-oauth/google'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import LoginScreen from './components/LoginScreen'
@@ -9,8 +9,29 @@ import { sheetGroups } from './constants'
 function App() {
   const [user, setUser] = useState<TokenResponse | null>(null)
   
+  // Load saved token on component mount
+  useEffect(() => {
+    const savedToken = localStorage.getItem('googleAuthToken');
+    if (savedToken) {
+      try {
+        const parsedToken = JSON.parse(savedToken) as TokenResponse;
+        setUser(parsedToken);
+      } catch (error) {
+        console.error('Error parsing saved token:', error);
+        // Clear invalid token
+        localStorage.removeItem('googleAuthToken');
+      }
+    }
+  }, []);
+  
   const handleLoginSuccess = (response: TokenResponse) => {
     setUser(response);
+  };
+  
+  const handleSignOut = () => {
+    // Remove token from localStorage when signing out
+    localStorage.removeItem('googleAuthToken');
+    setUser(null);
   };
 
   return (
@@ -32,7 +53,7 @@ function App() {
               
               {/* Sign out button on the right */}
               <button
-                onClick={() => setUser(null)}
+                onClick={handleSignOut}
                 className="bg-red-500 hover:bg-red-600 text-white font-medium py-1 px-3 rounded text-sm transition-colors"
               >
                 Sign Out
