@@ -86,6 +86,74 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
     }
   }, [currentGroup]);
 
+  // Function to handle crediting soldier
+  const handleCreditSoldier = async (weaponType: string, serial: string) => {
+    // Find the מלאי נשקיה sheet in the sheet groups
+    let armoryInventorySheetGroup = null;
+    let armoryInventorySheet = null;
+    
+    for (let i = 0; i < sheetGroups.length; i++) {
+      const group = sheetGroups[i];
+      for (let j = 0; j < group.sheets.length; j++) {
+        if (group.sheets[j].name === 'מלאי נשקיה') {
+          armoryInventorySheetGroup = group;
+          armoryInventorySheet = group.sheets[j];
+          break;
+        }
+      }
+      if (armoryInventorySheetGroup) break;
+    }
+
+    if (!armoryInventorySheet) {
+      setError('לא נמצא גליון מלאי נשקיה');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Get the next available row in the armory inventory sheet
+      const encodedRange = encodeURIComponent(armoryInventorySheet.range);
+      const result = await GoogleSheetsService.fetchSheetData(accessToken, spreadsheetId, encodedRange);
+      
+      if (result.error) {
+        throw new Error(`Google Sheets API error: ${result.error.message}`);
+      }
+
+      if (!result.values) {
+        throw new Error('No data found in armory inventory sheet');
+      }
+
+      // Determine the next row to insert data
+      const nextRow = result.values.length + 1;
+      
+      // Prepare data for insertion
+      // Assuming the columns in מלאי נשקיה are ordered as: Type, Serial, etc.
+      // You might need to adjust column positions based on actual sheet structure
+      const range = `${armoryInventorySheet.name}!A${nextRow}:B${nextRow}`;
+      const values = [[weaponType, serial]];
+      
+      // Insert data into the armory inventory sheet
+      await GoogleSheetsService.appendSheetData(
+        accessToken,
+        spreadsheetId,
+        range,
+        values
+      );
+
+      // Show success message
+      alert(`חייל זוכה בהצלחה! נוסף ${weaponType} מספר ${serial} למלאי הנשקיה`);
+      
+      // Refresh current sheet data
+      fetchSheetData(activeTabIndex);
+      
+    } catch (error) {
+      console.error('Error crediting soldier:', error);
+      setError(error instanceof Error ? error.message : 'שגיאה בזיכוי החייל');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">{currentGroup.name}</h2>
@@ -114,6 +182,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
           rowData={sheetData}
           groupIndex={groupIndex}
           onRowSelected={setSelectedRow}
+          onCreditSoldier={handleCreditSoldier}
         />
       ) : (
         <div className="bg-white shadow-lg rounded-lg p-6 text-center">
