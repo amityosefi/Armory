@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { AgGridReact } from 'ag-grid-react';
 import TabsNavigation from './TabsNavigation';
+import SheetDataGrid from './SheetDataGrid';
 import GoogleSheetsService from '../services/GoogleSheetsService';
+import { creditSoldier } from '../services/SoldierService';
 import { DEFAULT_SPREADSHEET_ID } from '../constants';
 import type { SheetGroup } from '../types';
 
@@ -19,6 +20,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
   const [columnDefs, setColumnDefs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [_selectedRow, setSelectedRow] = useState<any | null>(null);
   const spreadsheetId = DEFAULT_SPREADSHEET_ID;
 
   // Make sure groupIndex is valid
@@ -33,6 +35,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
     
     setLoading(true);
     setError(null);
+    setSelectedRow(null);
 
     try {
       const encodedRange = encodeURIComponent(selectedSheet.range);
@@ -54,6 +57,17 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
       // Process the data using our service
       const { columnDefs: cols, rowData } = GoogleSheetsService.processSheetData(result);
 
+      // Add checkbox selection to first column
+      if (cols.length > 0) {
+        cols[0] = {
+          ...cols[0],
+          checkboxSelection: true,
+          headerCheckboxSelection: false,
+          width: 60,
+          flex: 0,
+        };
+      }
+
       setColumnDefs(cols);
       setSheetData(rowData);
       console.log(`Processed ${rowData.length} rows of data`);
@@ -72,6 +86,34 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
       fetchSheetData(0);
     }
   }, [currentGroup]);
+
+  // Function to handle crediting soldier
+  const handleCreditSoldier = async (weaponType: string, serial: string) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await creditSoldier(
+        accessToken,
+        spreadsheetId,
+        weaponType,
+        serial,
+        sheetGroups
+      );
+      
+      // Show success message
+      alert(`חייל זוכה בהצלחה! נוסף ${weaponType} מספר ${serial} למלאי הנשקיה`);
+      
+      // Refresh current sheet data
+      fetchSheetData(activeTabIndex);
+      
+    } catch (error) {
+      console.error('Error crediting soldier:', error);
+      setError(error instanceof Error ? error.message : 'שגיאה בזיכוי החייל');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div>
@@ -96,19 +138,13 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
           <p>{error}</p>
         </div>
       ) : sheetData.length > 0 ? (
-        <div className="ag-theme-alpine w-full h-[70vh] ag-rtl">
-          <AgGridReact
-            columnDefs={columnDefs}
-            rowData={sheetData}
-            domLayout="normal"
-            enableRtl={true}
-            defaultColDef={{
-              flex: 1,
-              minWidth: 100,
-              resizable: true
-            }}
-          />
-        </div>
+        <SheetDataGrid
+          columnDefs={columnDefs}
+          rowData={sheetData}
+          groupIndex={groupIndex}
+          onRowSelected={setSelectedRow}
+          onCreditSoldier={handleCreditSoldier}
+        />
       ) : (
         <div className="bg-white shadow-lg rounded-lg p-6 text-center">
           <p className="text-gray-700">אין מידע זמין עבור גליון זה.</p>

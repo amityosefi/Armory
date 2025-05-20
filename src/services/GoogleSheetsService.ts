@@ -21,6 +21,27 @@ class GoogleSheetsService {
     }
   }
 
+  static async appendSheetData(accessToken: string, spreadsheetId: string, range: string, values: any[][]) {
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ values })
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Failed to append data: ${JSON.stringify(errorData)}`);
+    }
+
+    return await response.json();
+  }
+
   static processSheetData(data: any) {
     if (!data.values || data.values.length === 0) {
       return { columnDefs: [], rowData: [] };

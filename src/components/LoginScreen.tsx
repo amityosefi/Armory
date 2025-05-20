@@ -16,7 +16,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     onError: (error) => {
       console.log('Login Failed:', error);
     },
-    scope: 'https://www.googleapis.com/auth/spreadsheets.readonly'
+    scope: 'https://www.googleapis.com/auth/spreadsheets'
   });
 
   return (
