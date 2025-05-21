@@ -12,20 +12,11 @@ export const creditSoldier = async (
   sheetGroups: SheetGroup[]
 ): Promise<void> => {
   // Find the מלאי נשקיה sheet in the sheet groups
-  let armoryInventorySheetGroup = null;
-  let armoryInventorySheet = null;
+  const foundSheet = sheetGroups.flatMap(group => 
+    group.sheets.map(sheet => ({ sheet, group }))
+  ).find(item => item.sheet.name === 'מלאי נשקיה');
   
-  for (let i = 0; i < sheetGroups.length; i++) {
-    const group = sheetGroups[i];
-    for (let j = 0; j < group.sheets.length; j++) {
-      if (group.sheets[j].name === 'מלאי נשקיה') {
-        armoryInventorySheetGroup = group;
-        armoryInventorySheet = group.sheets[j];
-        break;
-      }
-    }
-    if (armoryInventorySheetGroup) break;
-  }
+  const armoryInventorySheet = foundSheet?.sheet;
 
   if (!armoryInventorySheet) {
     throw new Error('לא נמצא גליון מלאי נשקיה');
