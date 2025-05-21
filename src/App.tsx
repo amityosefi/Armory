@@ -5,23 +5,68 @@ import LoginScreen from './components/LoginScreen'
 import GroupNavigation from './components/GroupNavigation'
 import SheetGroupPage from './components/SheetGroupPage'
 import { sheetGroups } from './constants'
+import { DEFAULT_SPREADSHEET_ID } from './constants'
+import GoogleSheetsService from './services/GoogleSheetsService'
 
 function App() {
   const [user, setUser] = useState<TokenResponse | null>(null)
+  const [isValidatingToken, setIsValidatingToken] = useState<boolean>(true)
+  
+  // Function to validate access token by making a test request
+  const validateAccessToken = async (token: string): Promise<boolean> => {
+    try {
+      // Try to fetch a minimal amount of data from the spreadsheet to verify access
+      const result = await GoogleSheetsService.fetchSheetData(
+        token,
+        DEFAULT_SPREADSHEET_ID,
+        'א!A1:A1'  // Just request a single cell
+      );
+      
+      // If we get a 401 or 403 error, token is invalid or lacks permission
+      if (result.error) {
+        console.error('Token validation failed:', result.error.message);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error validating token:', error);
+      return false;
+    }
+  }
   
   // Load saved token on component mount
   useEffect(() => {
-    const savedToken = localStorage.getItem('googleAuthToken');
-    if (savedToken) {
-      try {
-        const parsedToken = JSON.parse(savedToken) as TokenResponse;
-        setUser(parsedToken);
-      } catch (error) {
-        console.error('Error parsing saved token:', error);
-        // Clear invalid token
-        localStorage.removeItem('googleAuthToken');
+    const checkSavedToken = async () => {
+      setIsValidatingToken(true);
+      const savedToken = localStorage.getItem('googleAuthToken');
+      
+      if (savedToken) {
+        try {
+          const parsedToken = JSON.parse(savedToken) as TokenResponse;
+          
+          // Validate that the token can access Google Sheets
+          const isValid = await validateAccessToken(parsedToken.access_token);
+          
+          if (isValid) {
+            setUser(parsedToken);
+          } else {
+            // Token is invalid or lacks permissions
+            console.log('Saved token is invalid or lacks permissions');
+            localStorage.removeItem('googleAuthToken');
+            setUser(null);
+          }
+        } catch (error) {
+          console.error('Error parsing saved token:', error);
+          // Clear invalid token
+          localStorage.removeItem('googleAuthToken');
+        }
       }
-    }
+      
+      setIsValidatingToken(false);
+    };
+    
+    checkSavedToken();
   }, []);
   
   const handleLoginSuccess = (response: TokenResponse) => {
@@ -33,6 +78,17 @@ function App() {
     localStorage.removeItem('googleAuthToken');
     setUser(null);
   };
+
+  if (isValidatingToken) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 w-full" dir="rtl">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+          <p className="text-gray-700">מאמת חיבור...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4 w-full" dir="rtl">
