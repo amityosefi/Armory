@@ -44,13 +44,27 @@ export const creditSoldier = async (
       throw new Error('No data found in armory inventory sheet');
     }
 
+    // Extract the header row to find the column for weaponType
+    const headerRow = result.values[0] || [];
+    const columnIndex = headerRow.findIndex(
+      (header: string) => header === weaponType
+    );
+    
+    if (columnIndex === -1) {
+      throw new Error(`לא נמצא עמודה עבור סוג הנשק: ${weaponType}`);
+    }
+    
     // Determine the next row to insert data
     const nextRow = result.values.length + 1;
     
-    // Prepare data for insertion
-    // Assuming the columns in מלאי נשקיה are ordered as: Type, Serial, etc.
-    const range = `${armoryInventorySheet.name}!A${nextRow}:B${nextRow}`;
-    const values = [[weaponType, serial]];
+    // Convert column index to letter (A, B, C, etc.)
+    const columnLetter = String.fromCharCode(65 + columnIndex); // A=65 in ASCII
+    
+    // Prepare data for insertion with serial in the correct column
+    const range = `${armoryInventorySheet.name}!${columnLetter}${nextRow}:${columnLetter}${nextRow}`;
+    
+    // Create a row with the serial in the right position
+    const values = [[serial]];
     
     // Insert data into the armory inventory sheet
     await GoogleSheetsService.appendSheetData(
