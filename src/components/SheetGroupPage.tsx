@@ -88,7 +88,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
   }, [currentGroup]);
 
   // Function to handle crediting soldier
-  const handleCreditSoldier = async (weaponType: string, serial: string) => {
+  const handleCreditSoldier = async (weaponType: string, serial: string, selectedRow: any) => {
     setLoading(true);
     setError(null);
     
@@ -98,7 +98,8 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
         spreadsheetId,
         weaponType,
         serial,
-        sheetGroups
+        sheetGroups,
+        selectedRow
       );
       
       // Show success message

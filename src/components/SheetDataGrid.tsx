@@ -6,7 +6,7 @@ interface SheetDataGridProps {
   rowData: any[];
   groupIndex: number;
   onRowSelected?: (row: any) => void;
-  onCreditSoldier?: (weaponType: string, serial: string) => void; // New prop for crediting soldier
+  onCreditSoldier?: (weaponType: string, serial: string, selectedRow: any) => void; // Updated prop type
 }
 
 const SheetDataGrid: React.FC<SheetDataGridProps> = ({ 
@@ -28,7 +28,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
       console.log('Crediting soldier with weapon:', weaponType, 'serial:', serial);
       
       if (onCreditSoldier && weaponType && serial) {
-        onCreditSoldier(weaponType, serial);
+        onCreditSoldier(weaponType, serial, selectedRow);
       }
     }
   };
