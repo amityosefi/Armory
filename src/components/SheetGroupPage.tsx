@@ -140,6 +140,8 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
         </div>
       ) : sheetData.length > 0 ? (
         <SheetDataGrid
+            accessToken={accessToken}
+            currentGroup={currentGroup.sheets}
           columnDefs={columnDefs}
           rowData={sheetData}
           groupIndex={groupIndex}

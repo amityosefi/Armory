@@ -1,0 +1,12 @@
+/* App.css */
+.ag-theme-alpine .ag-cell:hover {
+    background-color: #f0f8ff;
+    cursor: pointer;
+}
+
+/* App.css or any global stylesheet */
+.ag-theme-alpine .ag-cell:hover {
+    background-color: #FFCCCB; /* light blue */
+    cursor: pointer;
+}
+

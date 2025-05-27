@@ -60,7 +60,7 @@ export const creditSoldier = async (
     
     // Prepare data for insertion with serial in the correct column
     const armoryRange = `${armoryInventorySheet.name}!${weaponColumnLetter}${armoryNextRow}:${weaponColumnLetter}${armoryNextRow}`;
-    
+    console.log("matan: ", armoryRange);
     // Create a row with the serial in the right position
     const armoryValues = [[serial]];
     

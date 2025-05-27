@@ -7,6 +7,7 @@ import SheetGroupPage from './components/SheetGroupPage'
 import { sheetGroups } from './constants'
 import { DEFAULT_SPREADSHEET_ID } from './constants'
 import GoogleSheetsService from './services/GoogleSheetsService'
+import './css/App.css';
 
 function App() {
   const [user, setUser] = useState<TokenResponse | null>(null)
