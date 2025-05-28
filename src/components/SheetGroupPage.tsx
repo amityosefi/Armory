@@ -20,7 +20,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
   const [columnDefs, setColumnDefs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [_selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [selectedRow, setSelectedRow] = useState<any | null>(null);
   const spreadsheetId = DEFAULT_SPREADSHEET_ID;
 
   // Make sure groupIndex is valid
@@ -113,15 +113,32 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
     }
   };
 
+  // Create the credit button component conditionally
+  const creditButton = selectedRow && groupIndex === 0 ? (
+    <button
+      className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
+      onClick={() => {
+        const weaponType = selectedRow['סוג_נשק']; // Get weapon type from selected row
+        const serial = selectedRow['מסד']; // Get serial number from selected row
+        if (weaponType && serial) {
+          handleCreditSoldier(weaponType, serial, selectedRow);
+        }
+      }}
+    >
+      זיכוי חייל
+    </button>
+  ) : null;
+
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">{currentGroup.name}</h2>
       
-      {/* Tabs Navigation */}
+      {/* Tabs Navigation with credit button */}
       <TabsNavigation 
         sheets={currentGroup.sheets} 
         activeTabIndex={activeTabIndex} 
         onTabChange={fetchSheetData} 
+        creditButton={creditButton}
       />
 
       {/* Content Area */}
@@ -137,8 +154,8 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
         </div>
       ) : sheetData.length > 0 ? (
         <SheetDataGrid
-            accessToken={accessToken}
-            currentGroup={currentGroup.sheets}
+          accessToken={accessToken}
+          currentGroup={currentGroup.sheets}
           columnDefs={columnDefs}
           rowData={sheetData}
           groupIndex={groupIndex}

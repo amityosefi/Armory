@@ -2,15 +2,17 @@ interface TabsNavigationProps {
   sheets: Array<{name: string, range: string}>;
   activeTabIndex: number;
   onTabChange: (index: number) => void;
+  creditButton?: React.ReactNode; // Add this prop to accept the credit button
 }
 
 function TabsNavigation({ 
   sheets, 
   activeTabIndex, 
-  onTabChange 
+  onTabChange,
+  creditButton // Accept the credit button
 }: TabsNavigationProps) {
   return (
-    <div className="mb-4 border-b border-gray-200">
+    <div className="mb-4 border-b border-gray-200 flex justify-between items-center">
       <ul className="flex flex-wrap -mb-px">
         {sheets.map((sheet, index) => (
           <li key={index} className="mr-2">
@@ -25,6 +27,9 @@ function TabsNavigation({
           </li>
         ))}
       </ul>
+      
+      {/* Render the credit button if provided */}
+      {creditButton}
     </div>
   );
 }
