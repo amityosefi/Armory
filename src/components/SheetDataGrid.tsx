@@ -4,6 +4,7 @@ import GoogleSheetsService from "../services/GoogleSheetsService";
 import {DEFAULT_SPREADSHEET_ID} from '../constants';
 import ConfirmDialog from "./feedbackFromBackendOrUser/DialogCheckForRemoval.tsx";
 import StatusMessageProps from "./feedbackFromBackendOrUser/StatusMessageProps.tsx";
+import type { GridReadyEvent, GridApi } from 'ag-grid-community';
 
 
 interface SheetDataGridProps {
@@ -40,16 +41,20 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         };
     });
 
+    const gridApiRef = useRef<GridApi | null>(null);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [clickedCellInfo, setClickedCellInfo] = useState<{
         rowIndex: number;
         colName: string;
         value: any;
-        row: any
+        oldValue: any;
+        row: any;
+        colIndex: number;
     } | null>(null);
 
+
     const [selectedRow, setSelectedRow] = useState<any | null>(null);
-    const gridRef = useRef<any>(null);
+    const gridRef = useRef<AgGridReact>(null);
     const isRevertingNameOrComment = useRef(false);
     const [showMessage, setShowMessage] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -69,7 +74,15 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         }
     };
 
-    function onClickedItemToRemove(event: any) {
+    function handleOldValue(rowIndex: number, colIName: string, value: any) {
+        const api = gridApiRef.current;
+        if (!api) return;
+        const rowNode = api.getDisplayedRowAtIndex(rowIndex);
+        rowNode?.setDataValue(colIName, value);
+    }
+
+
+    async function onClickedOptic(event: any) {
 
         const col = event.colDef.field;
         const value = event.value;
@@ -80,31 +93,52 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 rowIndex: event.rowIndex,
                 colName: event.colDef.field,
                 value: value,
-                row: data
+                oldValue: event.oldValue,
+                row: data,
+                colIndex: event.column
             });
             setShowConfirmDialog(true);
         }
+        else{
+            const reactQueryGet = await GoogleSheetsService.fetchSheetData(accessToken, DEFAULT_SPREADSHEET_ID, "מלאי אופטיקה");
+            const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(reactQueryGet.values, event.colDef.field);
+            const dropdownOptions = [...new Set(valuesForAssign.map(item => item.value))];
+            console.log(dropdownOptions);
+        }
     }
 
-    async function handleConfirm() {
+    async function handleConfirmOpticCredit() {
         if (clickedCellInfo) {
-            const colIndex = columnDefs.findIndex(c => c.headerName === clickedCellInfo.colName);
             const msg = clickedCellInfo.row["שם_מלא"] + " זיכה " + clickedCellInfo.colName + " " + clickedCellInfo.value;
-            console.log( colIndex, msg);
-            // const response = await GoogleSheetsService.updateCalls({
-            //     accessToken: accessToken,
-            //     spreadsheetId: DEFAULT_SPREADSHEET_ID,
-            //     updateSheet: currentGroup[groupIndex].range,
-            //     updateRowIndex: clickedCellInfo.rowIndex + 1, // Use clickedCellInfo.rowIndex or default to 0
-            //     updateColIndex: colIndex,
-            //     updateValue: '',
-            //     appendSheet: 553027487,
-            //     // appendSheet: "תיעוד",
-            //     appendValues: [[msg, new Date().toString()]]
-            // });
-            // setShowConfirmDialog(false);
-            // setIsSuccess(response);
-            // setMessage(response ? msg : ` בעיה בזיכוי ${clickedCellInfo.colName}`);
+            const reactQueryGet = await GoogleSheetsService.fetchSheetData(accessToken, DEFAULT_SPREADSHEET_ID, "מלאי אופטיקה");
+            const rowCol = GoogleSheetsService.findInsertIndex(reactQueryGet.values, clickedCellInfo.colName);
+
+            const response = await GoogleSheetsService.updateCalls({
+                accessToken: accessToken,
+                spreadsheetId: DEFAULT_SPREADSHEET_ID,
+                updates: [
+                    {
+                        sheetId: 813181890,
+                        rowIndex: rowCol.row,
+                        colIndex: rowCol.col,
+                        value: clickedCellInfo.value
+                    },
+                    {
+                        sheetId: currentGroup[groupIndex].id,
+                    rowIndex: clickedCellInfo.rowIndex + 1,
+                    colIndex: columnDefs.findIndex(c => c.headerName === clickedCellInfo.colName),
+                    value: ""
+                }],
+                appendSheetId: 553027487,
+                appendValues: [[msg, new Date().toString()]]
+            });
+            setShowConfirmDialog(false);
+            setIsSuccess(response);
+            setMessage(response ? msg : ` בעיה בזיכוי ${clickedCellInfo.colName}`);
+            handleOldValue(clickedCellInfo.rowIndex, clickedCellInfo.colName, "")
+            if (!response) {
+                isRevertingNameOrComment.current = true;
+            }
         }
     }
 
@@ -118,12 +152,12 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             accessToken: accessToken,
             spreadsheetId: DEFAULT_SPREADSHEET_ID,
             updates: [{
-                sheetName: currentGroup[groupIndex].id,
-                rowIndex: event.rowIndex,
+                sheetId: currentGroup[groupIndex].id,
+                rowIndex: event.rowIndex + 1,
                 colIndex: event.colDef.field === "שם_מלא" ? 4 : 5,
                 value: event.newValue  ?? ""
             }],
-            appendSheet: 553027487,
+            appendSheetId: 553027487,
             appendValues: [["חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field, new Date().toString()]]
         });
 
@@ -153,6 +187,9 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 <AgGridReact
                     className="ag-theme-alpine"
                     ref={gridRef}
+                    onGridReady={(params: GridReadyEvent) => {
+                        gridApiRef.current = params.api;
+                    }}
                     columnDefs={columnDefs}
                     rowData={rowData}
                     stopEditingWhenCellsLoseFocus={true}
@@ -166,7 +203,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     rowSelection="single"
                     suppressRowClickSelection={true}
                     onCellClicked={(event) => {
-                        onClickedItemToRemove(event);
+                        onClickedOptic(event);
                     }}
                     onCellValueChanged={async (event) => {
                         await changeNameOrComment(event);
@@ -193,10 +230,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                             }
                         }
                     }}
-                    onGridReady={(params) => {
-                        // Store grid API reference when grid is ready
-                        gridRef.current = params;
-                    }}
                 />
 
                 {showConfirmDialog && clickedCellInfo && (
@@ -204,7 +237,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                         <ConfirmDialog
                             show={showConfirmDialog}
                             clickedCellInfo={clickedCellInfo}
-                            onConfirm={() => handleConfirm()}
+                            onConfirm={() => handleConfirmOpticCredit()}
                             onCancel={() => setShowConfirmDialog(false)}
                         />
                     </div>

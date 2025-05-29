@@ -76,18 +76,18 @@ class GoogleSheetsService {
                                  accessToken,
                                  spreadsheetId,
                                  updates,
-                                 appendSheet,
+                                 appendSheetId,
                                  appendValues,
                              }: {
         accessToken: string;
         spreadsheetId: string;
         updates: {
-            sheetName: string;
+            sheetId: number;
             rowIndex: number;
             colIndex: number;
             value: string;
         }[];
-        appendSheet: number;
+        appendSheetId: number;
         appendValues: string[][];
     }) {
         // Fetch sheet metadata to get sheet IDs
@@ -110,9 +110,9 @@ class GoogleSheetsService {
 
         // Add updateCells requests
         for (const update of updates) {
-            const sheetId = update.sheetName;
+            const sheetId = update.sheetId;
             if (sheetId === undefined) {
-                throw new Error(`Sheet not found: ${update.sheetName}`);
+                throw new Error(`Sheet not found: ${update.sheetId}`);
             }
 
             requests.push({
@@ -137,9 +137,8 @@ class GoogleSheetsService {
         }
 
         // Add appendCells request
-        const appendSheetId = appendSheet;
         if (appendSheetId === undefined) {
-            throw new Error(`Sheet not found: ${appendSheet}`);
+            throw new Error(`Sheet not found: ${appendSheetId}`);
         }
 
         requests.push({
@@ -153,8 +152,6 @@ class GoogleSheetsService {
                 fields: "*",
             },
         });
-        console.log("json: ", JSON.stringify({ requests }));
-        // Send batchUpdate request
         const res = await fetch(
             `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
             {
@@ -172,7 +169,6 @@ class GoogleSheetsService {
             console.log(`Failed to update/append: ${JSON.stringify(error)}`)
             return false;
         }
-
         console.log("✅ Batch update and append successful");
         return true;
     }
@@ -267,6 +263,52 @@ class GoogleSheetsService {
         return sheet.properties.sheetId;
     }
 */
+
+    static findInsertIndex(data: string[][], headerName: string): { row: number, col: number } {
+        const headerRow = data[0];
+        const colIndex = headerRow.indexOf(headerName);
+
+        if (colIndex === -1) {
+            throw new Error(`Header "${headerName}" not found`);
+        }
+
+        for (let row = 1; row < data.length; row++) {
+            const rowData = data[row];
+            if (!rowData[colIndex] || rowData[colIndex].trim() === '') {
+                return { row, col: colIndex };
+            }
+        }
+
+        // If no empty cell found, insert at new row
+        return { row: data.length, col: colIndex };
+    }
+
+    static findValuesUnderHeader(
+        data: any[][],
+        headerName: string
+    ): { rowIndex: number; colIndex: number; value: any }[] {
+        const result: { rowIndex: number; colIndex: number; value: any; }[] = [];
+
+        if (!data || data.length === 0) return result;
+
+        const headerRow = data[0];
+        const colIndex = headerRow.indexOf(headerName);
+        if (colIndex === -1) return result;
+
+        for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
+            const row = data[rowIndex];
+            if (row && row.length > colIndex) {
+                const val = row[colIndex];
+                if (val !== '' && val !== null && val !== undefined) {
+                    result.push({ rowIndex, colIndex, value: val });
+                }
+            }
+        }
+
+        return result;
+    }
+
+
 
 
 }
