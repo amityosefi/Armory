@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import type { SheetGroup } from '../types';
+import type { SheetGroup } from '../../types';
 
 interface GroupNavigationProps {
   sheetGroups: SheetGroup[];

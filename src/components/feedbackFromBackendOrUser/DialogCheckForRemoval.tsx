@@ -3,7 +3,7 @@ import React from "react";
 
 interface ConfirmDialogProps {
     show: boolean;
-    clickedCellInfo: { colId: string; value: string } | null;
+    clickedCellInfo: { colName: string; value: string } | null;
     onConfirm: () => void;
     onCancel: () => void;
 }
@@ -16,7 +16,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({show, clickedCellInfo, onC
             <div className="bg-white p-6 rounded shadow-md max-w-sm text-center">
                 <p className="mb-4">
                     האם אתה בטוח שאתה רוצה לזכות את האמצעי
-                    <strong> {clickedCellInfo.colId} </strong>
+                    <strong> {clickedCellInfo.colName} </strong>
                     <strong>{clickedCellInfo.value}</strong>?
                 </p>
                 <div className="flex justify-around">

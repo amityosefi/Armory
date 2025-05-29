@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import TabsNavigation from './TabsNavigation';
+import TabsNavigation from './route/TabsNavigation.tsx';
 import SheetDataGrid from './SheetDataGrid';
 import GoogleSheetsService from '../services/GoogleSheetsService';
 import { creditSoldier } from '../services/SoldierService';
@@ -39,10 +39,8 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
 
     try {
       const encodedRange = encodeURIComponent(selectedSheet.range);
-      console.log(`Fetching sheet: ${spreadsheetId} with range: ${selectedSheet.range}`);
-      
+
       const result = await GoogleSheetsService.fetchSheetData(accessToken, spreadsheetId, encodedRange);
-      console.log('API Response:', result);
 
       if (result.error) {
         throw new Error(`Google Sheets API error: ${result.error.message}`);
@@ -70,7 +68,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
 
       setColumnDefs(cols);
       setSheetData(rowData);
-      console.log(`Processed ${rowData.length} rows of data`);
     } catch (error) {
       console.error('Error fetching Google Sheets data:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch sheet data');
