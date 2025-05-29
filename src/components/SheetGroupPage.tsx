@@ -6,6 +6,7 @@ import GoogleSheetsService from '../services/GoogleSheetsService';
 import { creditSoldier } from '../services/SoldierService';
 import { DEFAULT_SPREADSHEET_ID } from '../constants';
 import type { SheetGroup } from '../types';
+import { useGoogleSheetData } from './hooks/useGoogleSheetData.tsx';
 
 interface SheetGroupPageProps {
   accessToken: string;
@@ -16,45 +17,53 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
   const { groupId } = useParams();
   const groupIndex = parseInt(groupId || "0");
   const [activeTabIndex, setActiveTabIndex] = useState(0);
-  const [sheetData, setSheetData] = useState<any[]>([]);
-  const [columnDefs, setColumnDefs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [_selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [selectedRow, setSelectedRow] = useState<any | null>(null);
   const spreadsheetId = DEFAULT_SPREADSHEET_ID;
 
   // Make sure groupIndex is valid
   const currentGroup = groupIndex >= 0 && groupIndex < sheetGroups.length 
     ? sheetGroups[groupIndex] 
     : sheetGroups[0];
-
-  // Function to fetch data based on sheet selection
-  const fetchSheetData = async (sheetIndex: number) => {
-    setActiveTabIndex(sheetIndex);
-    const selectedSheet = currentGroup.sheets[sheetIndex];
     
-    setLoading(true);
-    setError(null);
-    setSelectedRow(null);
-
-    try {
-      const encodedRange = encodeURIComponent(selectedSheet.range);
-
-      const result = await GoogleSheetsService.fetchSheetData(accessToken, spreadsheetId, encodedRange);
-
-      if (result.error) {
-        throw new Error(`Google Sheets API error: ${result.error.message}`);
-      }
-
-      if (!result.values || result.values.length === 0) {
+  // Get the currently selected sheet
+  const selectedSheet = currentGroup.sheets[activeTabIndex];
+  const encodedRange = selectedSheet ? encodeURIComponent(selectedSheet.range) : '';
+  
+  // Use the React Query hook
+  const { 
+    data: sheetQueryData,
+    isLoading,
+    error,
+    refetch
+  } = useGoogleSheetData(
+    {
+      accessToken,
+      spreadsheetId,
+      range: encodedRange
+    },
+    {
+      // Don't process data here, we'll do it with custom logic below
+      processData: false,
+      enabled: !!accessToken && !!spreadsheetId && !!encodedRange
+    }
+  );
+  
+  // Derived state from query results
+  const [columnDefs, setColumnDefs] = useState<any[]>([]);
+  const [sheetData, setSheetData] = useState<any[]>([]);
+  
+  // Process data when query results change
+  useEffect(() => {
+    if (sheetQueryData && !isLoading) {
+      if (!sheetQueryData.values || sheetQueryData.values.length === 0) {
         setSheetData([]);
         setColumnDefs([]);
-        throw new Error('No data found in the specified range');
+        return;
       }
-
+      
       // Process the data using our service
-      const { columnDefs: cols, rowData } = GoogleSheetsService.processSheetData(result);
-
+      const { columnDefs: cols, rowData } = GoogleSheetsService.processSheetData(sheetQueryData);
+      
       // Add checkbox selection to first column
       if (cols.length > 0) {
         cols[0] = {
@@ -65,30 +74,27 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
           flex: 0,
         };
       }
-
+      
       setColumnDefs(cols);
       setSheetData(rowData);
-    } catch (error) {
-      console.error('Error fetching Google Sheets data:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch sheet data');
-      setSheetData([]);
-    } finally {
-      setLoading(false);
     }
+  }, [sheetQueryData, isLoading]);
+
+  // Function to change sheet tab
+  const handleTabChange = (sheetIndex: number) => {
+    setActiveTabIndex(sheetIndex);
+    setSelectedRow(null);
   };
 
   // Fetch data for the first tab when the component mounts or group changes
   useEffect(() => {
     if (currentGroup && currentGroup.sheets.length > 0) {
-      fetchSheetData(0);
+      handleTabChange(0);
     }
   }, [currentGroup]);
 
   // Function to handle crediting soldier
   const handleCreditSoldier = async (weaponType: string, serial: string, selectedRow: any) => {
-    setLoading(true);
-    setError(null);
-    
     try {
       await creditSoldier(
         accessToken,
@@ -103,29 +109,43 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
       alert(`חייל זוכה בהצלחה! נוסף ${weaponType} מספר ${serial} למלאי הנשקיה`);
       
       // Refresh current sheet data
-      fetchSheetData(activeTabIndex);
+      refetch();
       
     } catch (error) {
       console.error('Error crediting soldier:', error);
-      setError(error instanceof Error ? error.message : 'שגיאה בזיכוי החייל');
-    } finally {
-      setLoading(false);
     }
   };
+
+  // Create the credit button component conditionally
+  const creditButton = selectedRow && groupIndex === 0 ? (
+    <button
+      className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
+      onClick={() => {
+        const weaponType = selectedRow['סוג_נשק']; // Get weapon type from selected row
+        const serial = selectedRow['מסד']; // Get serial number from selected row
+        if (weaponType && serial) {
+          handleCreditSoldier(weaponType, serial, selectedRow);
+        }
+      }}
+    >
+      זיכוי חייל
+    </button>
+  ) : null;
 
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">{currentGroup.name}</h2>
       
-      {/* Tabs Navigation */}
+      {/* Tabs Navigation with credit button */}
       <TabsNavigation 
         sheets={currentGroup.sheets} 
         activeTabIndex={activeTabIndex} 
-        onTabChange={fetchSheetData} 
+        onTabChange={handleTabChange} 
+        creditButton={creditButton}
       />
 
       {/* Content Area */}
-      {loading ? (
+      {isLoading ? (
         <div className="flex flex-col justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
           <p className="text-gray-700">טוען מידע...</p>
@@ -133,12 +153,12 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
       ) : error ? (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           <p className="font-bold">Error:</p>
-          <p>{error}</p>
+          <p>{error instanceof Error ? error.message : 'Failed to fetch sheet data'}</p>
         </div>
       ) : sheetData.length > 0 ? (
         <SheetDataGrid
-            accessToken={accessToken}
-            currentGroup={currentGroup.sheets}
+          accessToken={accessToken}
+          currentGroup={currentGroup.sheets}
           columnDefs={columnDefs}
           rowData={sheetData}
           groupIndex={groupIndex}
