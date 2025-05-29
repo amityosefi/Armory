@@ -6,11 +6,9 @@ import type { SheetGroup } from '../types';
  */
 export const creditSoldier = async (
   accessToken: string, 
-  spreadsheetId: string,
-  weaponType: string, 
-  serial: string, 
   sheetGroups: SheetGroup[],
-  selectedRow: any
+  selectedRow: any,
+  headersStartingFromG: string[]
 ): Promise<void> => {
   // Find both required sheets in the sheet groups
   const sheets = sheetGroups.flatMap(group => 
@@ -32,7 +30,7 @@ export const creditSoldier = async (
     // PART 1: Handle armory inventory sheet
     // Get data from the armory inventory sheet
     const encodedArmoryRange = encodeURIComponent(armoryInventorySheet.range);
-    const armoryResult = await GoogleSheetsService.fetchSheetData(accessToken, spreadsheetId, encodedArmoryRange);
+    const armoryResult = await GoogleSheetsService.fetchSheetData(accessToken, encodedArmoryRange);
     
     if (armoryResult.error) {
       throw new Error(`Google Sheets API error: ${armoryResult.error.message}`);
@@ -41,6 +39,9 @@ export const creditSoldier = async (
     if (!armoryResult.values) {
       throw new Error('No data found in armory inventory sheet');
     }
+
+    const weaponType = selectedRow['סוג_נשק']; // Get weapon type from selected row
+    const serial = selectedRow['מסד']; // Get serial number from selected row
 
     // Extract the header row to find the column for weaponType
     const armoryHeaderRow = armoryResult.values[0] || [];
@@ -67,7 +68,6 @@ export const creditSoldier = async (
     // Insert data into the armory inventory sheet
     await GoogleSheetsService.appendSheetData(
       accessToken,
-      spreadsheetId,
       armoryRange,
       armoryValues
     );
@@ -75,7 +75,7 @@ export const creditSoldier = async (
     // PART 2: Handle optical inventory sheet
     // Get data from the optical inventory sheet
     const encodedOpticalRange = encodeURIComponent(opticalInventorySheet.range);
-    const opticalResult = await GoogleSheetsService.fetchSheetData(accessToken, spreadsheetId, encodedOpticalRange);
+    const opticalResult = await GoogleSheetsService.fetchSheetData(accessToken, encodedOpticalRange);
     
     if (opticalResult.error) {
       throw new Error(`Google Sheets API error: ${opticalResult.error.message}`);
@@ -90,40 +90,40 @@ export const creditSoldier = async (
     
     // Check the 'כוונת' field value and prepare appropriate data for columns A and B
     const sightType = selectedRow?.['כוונת'];
-    let columnAValue = null;
-    let columnBValue = null;
     
-    if (sightType === 'M5') {
-      columnAValue = '1';
-    } else if (sightType === 'מאפרו') {
-      columnBValue = '1';
-    }
-    
-    // Extract optical item values from the selected row
-    const opticalItems = [
-      selectedRow?.['עמית'] || null,
-      selectedRow?.['עדי'] || null,
-      selectedRow?.['עידו'] || null,
-      selectedRow?.['ציין'] || null,
-      selectedRow?.['אקילה'] || null,
-      selectedRow?.['טריג'] || null,
-      selectedRow?.['שחע'] || null,
-      selectedRow?.['משקפת'] || null,
-      selectedRow?.['שחמ'] || null
-    ];
-    
-    // Create a combined array with all values (columns A through L)
-    const combinedRowData = [columnAValue, columnBValue, ...opticalItems];
-    
-    // Insert all data in one call (columns A through L)
-    const fullOpticalRange = `${opticalInventorySheet.name}!A${opticalNextRow}:L${opticalNextRow}`;
-    await GoogleSheetsService.appendSheetData(
+    // First, create a new empty row in the optics sheet
+    // We'll use column A as our anchor point to create the row
+    await GoogleSheetsService.updateGoogleSheetCell({
       accessToken,
-      spreadsheetId,
-      fullOpticalRange,
-      [combinedRowData]
-    );
-  } catch (error) {
+      sheetName: opticalInventorySheet.name,
+      rowIndex: opticalNextRow,
+      colIndex: sightType === 'M5' ? 3 : 1, // Column D or B
+      value: ['M5', 'מפרו'].includes(sightType) ? '1' : ''
+    });
+
+    // Fetch the optical sheet headers to map correctly
+    const opticalHeaderRow = opticalResult.values[0] || [];
+
+    // Update each column from headersStartingFromG in the appropriate position
+    for (const header of headersStartingFromG) {
+      const value = selectedRow?.[header] || '';
+      
+      // Find the matching column in the optics sheet
+      const columnIndex = opticalHeaderRow.findIndex(h => h === header);
+      
+      // If column exists in the optics sheet, update it
+      if (columnIndex !== -1) {
+        await GoogleSheetsService.updateGoogleSheetCell({
+          accessToken,
+          sheetName: opticalInventorySheet.name,
+          rowIndex: opticalNextRow,
+          colIndex: columnIndex,
+          value: value
+        });
+      }
+    }
+
+      } catch (error) {
     console.error('Error crediting soldier:', error);
     throw error;
   }

@@ -4,7 +4,6 @@ import GoogleSheetsService from '../../services/GoogleSheetsService';
 
 interface SheetDataParams {
   accessToken: string;
-  spreadsheetId: string;
   range: string;
 }
 
@@ -23,15 +22,15 @@ export function useGoogleSheetData(
   params: SheetDataParams,
   options: UseGoogleSheetDataOptions = { processData: true }
 ) {
-  const { accessToken, spreadsheetId, range, processData = true } = { ...params, ...options };
+  const { accessToken, range, processData = true } = { ...params, ...options };
   
   return useQuery({
-    queryKey: ['googleSheet', spreadsheetId, range],
+    queryKey: ['googleSheet', range],
     queryFn: async () => {
-      const data = await GoogleSheetsService.fetchSheetData(accessToken, spreadsheetId, range);
+      const data = await GoogleSheetsService.fetchSheetData(accessToken, range);
       return processData ? GoogleSheetsService.processSheetData(data) : data;
     },
-    enabled: !!accessToken && !!spreadsheetId && !!range,
+    enabled: !!accessToken && !!range,
     ...options
   });
 }

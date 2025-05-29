@@ -4,7 +4,6 @@ import TabsNavigation from './route/TabsNavigation.tsx';
 import SheetDataGrid from './SheetDataGrid';
 import GoogleSheetsService from '../services/GoogleSheetsService';
 import { creditSoldier } from '../services/SoldierService';
-import { DEFAULT_SPREADSHEET_ID } from '../constants';
 import type { SheetGroup } from '../types';
 import { useGoogleSheetData } from './hooks/useGoogleSheetData.tsx';
 
@@ -18,7 +17,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
   const groupIndex = parseInt(groupId || "0");
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [selectedRow, setSelectedRow] = useState<any | null>(null);
-  const spreadsheetId = DEFAULT_SPREADSHEET_ID;
 
   // Make sure groupIndex is valid
   const currentGroup = groupIndex >= 0 && groupIndex < sheetGroups.length 
@@ -38,13 +36,12 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
   } = useGoogleSheetData(
     {
       accessToken,
-      spreadsheetId,
       range: encodedRange
     },
     {
       // Don't process data here, we'll do it with custom logic below
       processData: false,
-      enabled: !!accessToken && !!spreadsheetId && !!encodedRange
+      enabled: !!accessToken && !!encodedRange
     }
   );
   
@@ -94,19 +91,20 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
   }, [currentGroup]);
 
   // Function to handle crediting soldier
-  const handleCreditSoldier = async (weaponType: string, serial: string, selectedRow: any) => {
+  const handleCreditSoldier = async (selectedRow: any) => {
     try {
+      const headersStartingFromG = columnDefs
+        .slice(6) // Column G is at index 6 (A=0, B=1, etc.)
+        .map(column => column.field || column.headerName);
       await creditSoldier(
         accessToken,
-        spreadsheetId,
-        weaponType,
-        serial,
         sheetGroups,
-        selectedRow
+        selectedRow,
+        headersStartingFromG
       );
       
       // Show success message
-      alert(`חייל זוכה בהצלחה! נוסף ${weaponType} מספר ${serial} למלאי הנשקיה`);
+      alert(`חייל זוכה בהצלחה! נוסף`);
       
       // Refresh current sheet data
       refetch();
@@ -121,11 +119,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
     <button
       className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
       onClick={() => {
-        const weaponType = selectedRow['סוג_נשק']; // Get weapon type from selected row
-        const serial = selectedRow['מסד']; // Get serial number from selected row
-        if (weaponType && serial) {
-          handleCreditSoldier(weaponType, serial, selectedRow);
-        }
+          handleCreditSoldier(selectedRow);
       }}
     >
       זיכוי חייל
