@@ -182,14 +182,12 @@ class GoogleSheetsService {
 
     static async updateGoogleSheetCell({
                                            accessToken,
-                                           spreadsheetId,
                                            sheetName,
                                            rowIndex,
                                            colIndex,
                                            value
                                        }: {
         accessToken: string;
-        spreadsheetId: string;
         sheetName: string;
         rowIndex: number; // 0-based
         colIndex: number; // 0-based
@@ -198,7 +196,7 @@ class GoogleSheetsService {
 
 
         const range = `${sheetName}!${GoogleSheetsService.columnIndexToLetter(colIndex)}${rowIndex + 1}`;
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}/values/${range}?valueInputOption=RAW`;
 
         const res = await fetch(url, {
             method: "PUT",

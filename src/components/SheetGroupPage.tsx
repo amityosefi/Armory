@@ -93,10 +93,14 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
   // Function to handle crediting soldier
   const handleCreditSoldier = async (selectedRow: any) => {
     try {
+      const headersStartingFromG = columnDefs
+        .slice(6) // Column G is at index 6 (A=0, B=1, etc.)
+        .map(column => column.field || column.headerName);
       await creditSoldier(
         accessToken,
         sheetGroups,
-        selectedRow
+        selectedRow,
+        headersStartingFromG
       );
       
       // Show success message
