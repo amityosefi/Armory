@@ -72,6 +72,112 @@ class GoogleSheetsService {
         return {columnDefs, rowData};
     }
 
+    static async updateCalls({
+                                 accessToken,
+                                 spreadsheetId,
+                                 updates,
+                                 appendSheet,
+                                 appendValues,
+                             }: {
+        accessToken: string;
+        spreadsheetId: string;
+        updates: {
+            sheetName: string;
+            rowIndex: number;
+            colIndex: number;
+            value: string;
+        }[];
+        appendSheet: number;
+        appendValues: string[][];
+    }) {
+        // Fetch sheet metadata to get sheet IDs
+        // const metadataRes = await fetch(
+        //     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
+        //     {
+        //         headers: {
+        //             Authorization: `Bearer ${accessToken}`,
+        //         },
+        //     }
+        // );
+        //
+        // const metadata = await metadataRes.json();
+        // const sheets = metadata.sheets;
+        //
+        // const getSheetId = (name: string) =>
+        //     sheets.find((s: any) => s.properties.title === name)?.properties.sheetId;
+
+        const requests: any[] = [];
+
+        // Add updateCells requests
+        for (const update of updates) {
+            const sheetId = update.sheetName;
+            if (sheetId === undefined) {
+                throw new Error(`Sheet not found: ${update.sheetName}`);
+            }
+
+            requests.push({
+                updateCells: {
+                    rows: [
+                        {
+                            values: [
+                                {
+                                    userEnteredValue: { stringValue: update.value },
+                                },
+                            ],
+                        },
+                    ],
+                    fields: "userEnteredValue",
+                    start: {
+                        sheetId,
+                        rowIndex: update.rowIndex,
+                        columnIndex: update.colIndex,
+                    },
+                },
+            });
+        }
+
+        // Add appendCells request
+        const appendSheetId = appendSheet;
+        if (appendSheetId === undefined) {
+            throw new Error(`Sheet not found: ${appendSheet}`);
+        }
+
+        requests.push({
+            appendCells: {
+                sheetId: appendSheetId,
+                rows: appendValues.map((row) => ({
+                    values: row.map((cell) => ({
+                        userEnteredValue: { stringValue: cell },
+                    })),
+                })),
+                fields: "*",
+            },
+        });
+        console.log("json: ", JSON.stringify({ requests }));
+        // Send batchUpdate request
+        const res = await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ requests }),
+            }
+        );
+
+        if (!res.ok) {
+            const error = await res.json();
+            console.log(`Failed to update/append: ${JSON.stringify(error)}`)
+            return false;
+        }
+
+        console.log("✅ Batch update and append successful");
+        return true;
+    }
+
+
     static async updateGoogleSheetCell({
                                            accessToken,
                                            spreadsheetId,
@@ -86,24 +192,11 @@ class GoogleSheetsService {
         rowIndex: number; // 0-based
         colIndex: number; // 0-based
         value: string;
-    }): Promise<void> {
+    }): Promise<boolean> {
 
-        function columnIndexToLetter(index: number): string {
-            let letter = '';
-            let temp = index + 1;
-            while (temp > 0) {
-                const mod = (temp - 1) % 26;
-                letter = String.fromCharCode(65 + mod) + letter;
-                temp = Math.floor((temp - mod) / 26);
-            }
-            return letter;
-        }
 
-        const range = `${sheetName}!${columnIndexToLetter(colIndex)}${rowIndex + 1}`;
+        const range = `${sheetName}!${GoogleSheetsService.columnIndexToLetter(colIndex)}${rowIndex + 1}`;
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`;
-
-        const log1 = range + ", value: " + value;
-        console.log(log1);
 
         const res = await fetch(url, {
             method: "PUT",
@@ -117,11 +210,64 @@ class GoogleSheetsService {
         });
 
         if (!res.ok) {
-            const error = await res.json();
-            throw new Error(`Failed to update cell: ${JSON.stringify(error)}`);
+            // const error = await res.json();
+            // throw new Error(`Failed to update cell: ${JSON.stringify(error)}`);
+            return false;
         }
         console.log(`✅ Updated ${range} with value: ${value}`);
+        return true;
     }
+
+    static columnIndexToLetter(index: number): string {
+        let letter = '';
+        let temp = index + 1;
+        while (temp > 0) {
+            const mod = (temp - 1) % 26;
+            letter = String.fromCharCode(65 + mod) + letter;
+            temp = Math.floor((temp - mod) / 26);
+        }
+        return letter;
+    }
+
+    /*
+    static async getSheetIdByName({
+                                      accessToken,
+                                      spreadsheetId,
+                                      sheetName,
+                                  }: {
+        accessToken: string;
+        spreadsheetId: string;
+        sheetName: string;
+    }): Promise<number | null> {
+        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+
+        if (!res.ok) {
+            console.error(`❌ Failed to fetch spreadsheet metadata`);
+            return null;
+        }
+
+        const metadata = await res.json();
+
+        // Log all sheet names and IDs
+        for (const s of metadata.sheets) {
+            console.log(`${s.properties.title} - ${s.properties.sheetId}`);
+        }
+
+        const sheet = metadata.sheets.find((s: any) => s.properties.title === sheetName);
+
+        if (!sheet) {
+            console.warn(`⚠️ Sheet "${sheetName}" not found`);
+            return null;
+        }
+
+        return sheet.properties.sheetId;
+    }
+*/
+
 
 }
 

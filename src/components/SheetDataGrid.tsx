@@ -1,8 +1,9 @@
 import React, {useRef, useState} from 'react';
 import {AgGridReact} from 'ag-grid-react';
 import GoogleSheetsService from "../services/GoogleSheetsService";
-import {DEFAULT_SPREADSHEET_ID} from '../constants'
-import ConfirmDialog from "../components/DialogCheckForRemoval";
+import {DEFAULT_SPREADSHEET_ID} from '../constants';
+import ConfirmDialog from "./feedbackFromBackendOrUser/DialogCheckForRemoval.tsx";
+import StatusMessageProps from "./feedbackFromBackendOrUser/StatusMessageProps.tsx";
 
 
 interface SheetDataGridProps {
@@ -25,28 +26,34 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                                                          onCreditSoldier
                                                      }) => {
     const columnDefs = incomingColumnDefs.map(col => {
-        if (col.field === 'הערות' || col.field === "שם_מלא") {
-            return {
-                ...col,
-                editable: true,
-                cellEditor: 'agTextCellEditor',
-                cellEditorParams: {
-                    maxLength: 200
-                }
-            };
-        }
-        return col;
+        const hoverExcludedFields = ['מספר_סידורי', 'סוג_נשק', 'מסד'];
+        const shouldEnableHover = !hoverExcludedFields.includes(col.field);
+
+        return {
+            ...col,
+            editable: ['הערות', 'שם_מלא'].includes(col.field),
+            cellEditor: ['הערות', 'שם_מלא'].includes(col.field) ? 'agTextCellEditor' : undefined,
+            cellEditorParams: ['הערות', 'שם_מלא'].includes(col.field)
+                ? { maxLength: 200 }
+                : undefined,
+            cellClass: shouldEnableHover ? 'hover-enabled' : undefined,
+        };
     });
+
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [clickedCellInfo, setClickedCellInfo] = useState<{
         rowIndex: number;
-        colId: string;
+        colName: string;
         value: any;
         row: any
     } | null>(null);
 
     const [selectedRow, setSelectedRow] = useState<any | null>(null);
     const gridRef = useRef<any>(null);
+    const isRevertingNameOrComment = useRef(false);
+    const [showMessage, setShowMessage] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const [message, setMessage] = useState('');
 
     // Function to handle crediting soldier
     const handleCreditSoldier = () => {
@@ -71,7 +78,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         if ((value !== undefined && value !== null && value !== '') && !headersNames.includes(col.toString())) {
             setClickedCellInfo({
                 rowIndex: event.rowIndex,
-                colId: event.colDef.field,
+                colName: event.colDef.field,
                 value: value,
                 row: data
             });
@@ -80,23 +87,68 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     }
 
     async function handleConfirm() {
-        console.log("hey:", clickedCellInfo);
-        setShowConfirmDialog(true);
+        if (clickedCellInfo) {
+            const colIndex = columnDefs.findIndex(c => c.headerName === clickedCellInfo.colName);
+            const msg = clickedCellInfo.row["שם_מלא"] + " זיכה " + clickedCellInfo.colName + " " + clickedCellInfo.value;
+            console.log( colIndex, msg);
+            // const response = await GoogleSheetsService.updateCalls({
+            //     accessToken: accessToken,
+            //     spreadsheetId: DEFAULT_SPREADSHEET_ID,
+            //     updateSheet: currentGroup[groupIndex].range,
+            //     updateRowIndex: clickedCellInfo.rowIndex + 1, // Use clickedCellInfo.rowIndex or default to 0
+            //     updateColIndex: colIndex,
+            //     updateValue: '',
+            //     appendSheet: 553027487,
+            //     // appendSheet: "תיעוד",
+            //     appendValues: [[msg, new Date().toString()]]
+            // });
+            // setShowConfirmDialog(false);
+            // setIsSuccess(response);
+            // setMessage(response ? msg : ` בעיה בזיכוי ${clickedCellInfo.colName}`);
+        }
     }
 
     async function changeNameOrComment(event: any) {
-        await GoogleSheetsService.updateGoogleSheetCell({
-            accessToken: accessToken, // Should come from a secure OAuth flow
+        if (isRevertingNameOrComment.current) {
+            // Skip if we're inside a manual revert
+            isRevertingNameOrComment.current = false;
+            return;
+        }
+        const response = await GoogleSheetsService.updateCalls({
+            accessToken: accessToken,
             spreadsheetId: DEFAULT_SPREADSHEET_ID,
-            sheetName: currentGroup[groupIndex].range,
-            rowIndex: event.rowIndex ? event.rowIndex + 1 : 0, // Use event.rowIndex or default to 0
-            colIndex: event.colDef.field === "שם_מלא" ? 4 : 5, // Convert column letter to index
-            value: event.newValue
+            updates: [{
+                sheetName: currentGroup[groupIndex].id,
+                rowIndex: event.rowIndex,
+                colIndex: event.colDef.field === "שם_מלא" ? 4 : 5,
+                value: event.newValue  ?? ""
+            }],
+            appendSheet: 553027487,
+            appendValues: [["חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field, new Date().toString()]]
         });
+
+
+        setShowMessage(true);
+        setIsSuccess(response);
+        setMessage(response ? `${event.colDef.field} עודכן בהצלחה ` : ` בעיה בעדכון ${event.colDef.field}`);
+        if (!response) {
+            isRevertingNameOrComment.current = true;
+            event.node.setDataValue(event.column.getId(), event.oldValue);
+        }
+
     }
 
     return (
         <>
+            {showMessage && (
+                <div>
+                    <StatusMessageProps
+                        isSuccess={isSuccess}
+                        message={message}
+                        onClose={() => setMessage('')}
+                    />
+                </div>
+            )}
             <div className="ag-theme-alpine w-full h-[70vh] ag-rtl">
                 <AgGridReact
                     className="ag-theme-alpine"
@@ -127,7 +179,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                             if (onRowSelected) {
                                 onRowSelected(rowData);
                             }
-                            console.log('Selected row:', rowData);
                         } else {
                             // When a checkbox is unchecked, check if any other row is selected
                             // before clearing the selectedRow state
@@ -147,6 +198,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                         gridRef.current = params;
                     }}
                 />
+
                 {showConfirmDialog && clickedCellInfo && (
                     <div>
                         <ConfirmDialog
@@ -158,7 +210,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     </div>
                 )}
 
-                {selectedRow && groupIndex === 0 && (
+                {selectedRow && (
                     <div className="mt-4 flex justify-center">
                         <button
                             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"

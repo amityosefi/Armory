@@ -5,7 +5,7 @@
 }
 
 /* App.css or any global stylesheet */
-.ag-theme-alpine .ag-cell:hover {
+.ag-theme-alpine .ag-cell.hover-enabled:hover {
     background-color: #FFCCCB; /* light blue */
     cursor: pointer;
 }

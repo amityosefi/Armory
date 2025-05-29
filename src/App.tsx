@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import type { TokenResponse } from '@react-oauth/google'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import LoginScreen from './components/LoginScreen'
-import GroupNavigation from './components/GroupNavigation'
+import GroupNavigation from './components/route/GroupNavigation'
 import SheetGroupPage from './components/SheetGroupPage'
 import { sheetGroups } from './constants'
 import { DEFAULT_SPREADSHEET_ID } from './constants'
@@ -103,7 +103,7 @@ function App() {
             {/* Header with title, navigation and sign out button in one row */}
             <div className="flex justify-between items-center mb-6">
               {/* Title on the left */}
-              <h1 className="text-2xl font-bold text-gray-800">Armory Dashboard</h1>
+              <h1 className="text-2xl font-bold text-gray-800">נשקיה 8101</h1>
               
               {/* Group Navigation in the center */}
               <GroupNavigation sheetGroups={sheetGroups} />
