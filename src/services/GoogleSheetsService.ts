@@ -1,8 +1,10 @@
+import { DEFAULT_SPREADSHEET_ID } from "../constants";
+
 class GoogleSheetsService {
-    static async fetchSheetData(accessToken: string, spreadsheetId: string, range: string) {
+    static async fetchSheetData(accessToken: string, range: string) {
         try {
             const response = await fetch(
-                `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`,
+                `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}/values/${range}`,
                 {
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
@@ -21,11 +23,11 @@ class GoogleSheetsService {
         }
     }
 
-    static async appendSheetData(accessToken: string, spreadsheetId: string, range: string, values: any[][]) {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED`
+    static async appendSheetData(accessToken: string, range: string, values: any[][]) {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED`
         console.log("url works: ", url);
         const response = await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED`,
+            `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED`,
             {
                 method: 'POST',
                 headers: {

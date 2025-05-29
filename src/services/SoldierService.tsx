@@ -6,9 +6,6 @@ import type { SheetGroup } from '../types';
  */
 export const creditSoldier = async (
   accessToken: string, 
-  spreadsheetId: string,
-  weaponType: string, 
-  serial: string, 
   sheetGroups: SheetGroup[],
   selectedRow: any
 ): Promise<void> => {
@@ -32,7 +29,7 @@ export const creditSoldier = async (
     // PART 1: Handle armory inventory sheet
     // Get data from the armory inventory sheet
     const encodedArmoryRange = encodeURIComponent(armoryInventorySheet.range);
-    const armoryResult = await GoogleSheetsService.fetchSheetData(accessToken, spreadsheetId, encodedArmoryRange);
+    const armoryResult = await GoogleSheetsService.fetchSheetData(accessToken, encodedArmoryRange);
     
     if (armoryResult.error) {
       throw new Error(`Google Sheets API error: ${armoryResult.error.message}`);
@@ -41,6 +38,9 @@ export const creditSoldier = async (
     if (!armoryResult.values) {
       throw new Error('No data found in armory inventory sheet');
     }
+
+    const weaponType = selectedRow['סוג_נשק']; // Get weapon type from selected row
+    const serial = selectedRow['מסד']; // Get serial number from selected row
 
     // Extract the header row to find the column for weaponType
     const armoryHeaderRow = armoryResult.values[0] || [];
@@ -67,7 +67,6 @@ export const creditSoldier = async (
     // Insert data into the armory inventory sheet
     await GoogleSheetsService.appendSheetData(
       accessToken,
-      spreadsheetId,
       armoryRange,
       armoryValues
     );
@@ -75,7 +74,7 @@ export const creditSoldier = async (
     // PART 2: Handle optical inventory sheet
     // Get data from the optical inventory sheet
     const encodedOpticalRange = encodeURIComponent(opticalInventorySheet.range);
-    const opticalResult = await GoogleSheetsService.fetchSheetData(accessToken, spreadsheetId, encodedOpticalRange);
+    const opticalResult = await GoogleSheetsService.fetchSheetData(accessToken, encodedOpticalRange);
     
     if (opticalResult.error) {
       throw new Error(`Google Sheets API error: ${opticalResult.error.message}`);
@@ -119,7 +118,6 @@ export const creditSoldier = async (
     const fullOpticalRange = `${opticalInventorySheet.name}!A${opticalNextRow}:L${opticalNextRow}`;
     await GoogleSheetsService.appendSheetData(
       accessToken,
-      spreadsheetId,
       fullOpticalRange,
       [combinedRowData]
     );

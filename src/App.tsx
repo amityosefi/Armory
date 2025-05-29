@@ -5,7 +5,6 @@ import LoginScreen from './components/LoginScreen'
 import GroupNavigation from './components/route/GroupNavigation'
 import SheetGroupPage from './components/SheetGroupPage'
 import { sheetGroups } from './constants'
-import { DEFAULT_SPREADSHEET_ID } from './constants'
 import GoogleSheetsService from './services/GoogleSheetsService'
 import './css/App.css';
 
@@ -19,7 +18,6 @@ function App() {
       // Try to fetch a minimal amount of data from the spreadsheet to verify access
       const result = await GoogleSheetsService.fetchSheetData(
         token,
-        DEFAULT_SPREADSHEET_ID,
         'א!A1:A1'  // Just request a single cell
       );
       
