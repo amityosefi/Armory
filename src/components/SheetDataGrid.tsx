@@ -117,7 +117,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         if ((value !== undefined && value !== null && value !== '') && !headersNames.includes(col.toString())) {
             setShowConfirmDialog(true);
         } else {
-            const reactQueryGet = await GoogleSheetsService.fetchSheetData(accessToken, DEFAULT_SPREADSHEET_ID, "מלאי אופטיקה");
+            const reactQueryGet = await GoogleSheetsService.fetchSheetData(accessToken, "מלאי אופטיקה");
             const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(reactQueryGet.values, event.colDef.field);
             const uniqueOptionsMap = new Map<string, { rowIndex: number, colIndex: number, value: string }>();
             valuesForAssign.forEach(item => {
