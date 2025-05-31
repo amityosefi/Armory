@@ -8,7 +8,8 @@ export const creditSoldier = async (
   accessToken: string, 
   sheetGroups: SheetGroup[],
   selectedRow: any,
-  headersStartingFromG: string[]
+  headersStartingFromG: string[],
+  sheetName: string
 ): Promise<void> => {
   // Find both required sheets in the sheet groups
   const sheets = sheetGroups.flatMap(group => 
@@ -109,7 +110,7 @@ export const creditSoldier = async (
       const value = selectedRow?.[header] || '';
       
       // Find the matching column in the optics sheet
-      const columnIndex = opticalHeaderRow.findIndex(h => h === header);
+      const columnIndex = opticalHeaderRow.findIndex((h:string) => h === header);
       
       // If column exists in the optics sheet, update it
       if (columnIndex !== -1) {
@@ -121,6 +122,31 @@ export const creditSoldier = async (
           value: value
         });
       }
+    }
+    
+    // PART 3: Remove the soldier from the soldier sheet
+    if (selectedRow.rowIndex !== -1) {
+      // Find the sheet ID for the current sheet
+      const sheetInfo = sheets.find(item => item.sheet.range === sheetName);
+      if (!sheetInfo || !sheetInfo.sheet.id) {
+        throw new Error(`Could not find sheet ID for: ${sheetName}`);
+      }
+      
+      const sheetId = sheetInfo.sheet.id;
+      const rowIndexToRemove = selectedRow.rowIndex + 1;
+      
+      // Remove the row properly instead of filling with empty values
+      const removed = await GoogleSheetsService.removeRow({
+        accessToken,
+        sheetId,
+        rowIndex: rowIndexToRemove
+      });
+      
+      if (!removed) {
+        throw new Error(`Failed to remove row at index ${rowIndexToRemove}`);
+      }
+      
+      console.log(`Successfully removed soldier at row index ${rowIndexToRemove}`);
     }
 
       } catch (error) {

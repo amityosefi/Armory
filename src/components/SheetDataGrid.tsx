@@ -175,6 +175,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                         // We're only interested in selected rows
                         if (event.node && event.node.isSelected()) {
                             const rowData = event.data;
+                            rowData['rowIndex'] = event.rowIndex; // Add index to rowData
                             setSelectedRow(rowData);
                             if (onRowSelected) {
                                 onRowSelected(rowData);

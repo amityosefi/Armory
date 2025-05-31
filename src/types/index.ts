@@ -4,6 +4,7 @@ export interface SheetGroup {
   sheets: Array<{
     name: string;
     range: string;
+    id: number;
   }>;
 }
 
@@ -11,6 +12,7 @@ export interface TabsNavigationProps {
   sheets: Array<{
     name: string;
     range: string;
+    id: number;
   }>;
   activeTabIndex: number;
   onTabChange: (index: number) => void;
