@@ -1,8 +1,10 @@
+import { DEFAULT_SPREADSHEET_ID } from "../constants";
+
 class GoogleSheetsService {
-    static async fetchSheetData(accessToken: string, spreadsheetId: string, range: string) {
+    static async fetchSheetData(accessToken: string, range: string) {
         try {
             const response = await fetch(
-                `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`,
+                `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}/values/${range}`,
                 {
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
@@ -24,11 +26,11 @@ class GoogleSheetsService {
         }
     }
 
-    static async appendSheetData(accessToken: string, spreadsheetId: string, range: string, values: any[][]) {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED`
+    static async appendSheetData(accessToken: string, range: string, values: any[][]) {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED`
         console.log("url works: ", url);
         const response = await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED`,
+            `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED`,
             {
                 method: 'POST',
                 headers: {
@@ -185,14 +187,12 @@ class GoogleSheetsService {
 
     static async updateGoogleSheetCell({
                                            accessToken,
-                                           spreadsheetId,
                                            sheetName,
                                            rowIndex,
                                            colIndex,
                                            value
                                        }: {
         accessToken: string;
-        spreadsheetId: string;
         sheetName: string;
         rowIndex: number; // 0-based
         colIndex: number; // 0-based
@@ -201,7 +201,7 @@ class GoogleSheetsService {
 
 
         const range = `${sheetName}!${GoogleSheetsService.columnIndexToLetter(colIndex)}${rowIndex + 1}`;
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}/values/${range}?valueInputOption=RAW`;
 
         const res = await fetch(url, {
             method: "PUT",
@@ -232,6 +232,55 @@ class GoogleSheetsService {
             temp = Math.floor((temp - mod) / 26);
         }
         return letter;
+    }
+
+    /**
+     * Removes a row from a Google Sheet
+     * @param accessToken - Google API access token
+     * @param sheetId - The ID of the sheet (not the spreadsheet ID)
+     * @param rowIndex - 0-based row index to remove
+     * @returns Promise<boolean> - True if successful, false otherwise
+     */
+    static async removeRow({
+        accessToken,
+        sheetId,
+        rowIndex
+    }: {
+        accessToken: string;
+        sheetId: number;
+        rowIndex: number; // 0-based
+    }): Promise<boolean> {
+        const requests = [{
+            deleteDimension: {
+                range: {
+                    sheetId: sheetId,
+                    dimension: "ROWS",
+                    startIndex: rowIndex,
+                    endIndex: rowIndex + 1
+                }
+            }
+        }];
+
+        const res = await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}:batchUpdate`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ requests }),
+            }
+        );
+
+        if (!res.ok) {
+            const error = await res.json();
+            console.log(`Failed to remove row: ${JSON.stringify(error)}`);
+            return false;
+        }
+
+        console.log(`✅ Successfully removed row at index ${rowIndex}`);
+        return true;
     }
 
     /*

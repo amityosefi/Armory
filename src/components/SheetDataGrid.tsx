@@ -333,6 +333,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                         // We're only interested in selected rows
                         if (event.node && event.node.isSelected()) {
                             const rowData = event.data;
+                            rowData['rowIndex'] = event.rowIndex; // Add index to rowData
                             setSelectedRow(rowData);
                             if (onRowSelected) {
                                 onRowSelected(rowData);
@@ -361,17 +362,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                             onConfirm={() => handleConfirmOpticCredit()}
                             onCancel={() => setShowConfirmDialog(false)}
                         />
-                    </div>
-                )}
-
-                {selectedRow && (
-                    <div className="mt-4 flex justify-center">
-                        <button
-                            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-                            onClick={handleCreditSoldier}
-                        >
-                            זיכוי חייל
-                        </button>
                     </div>
                 )}
             </div>
