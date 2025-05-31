@@ -137,7 +137,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     async function handleConfirmOpticCredit() {
         if (clickedCellInfo) {
             const msg = clickedCellInfo.row["שם_מלא"] + " זיכה " + clickedCellInfo.colName + " " + clickedCellInfo.value;
-            const reactQueryGet = await GoogleSheetsService.fetchSheetData(accessToken, DEFAULT_SPREADSHEET_ID, "מלאי אופטיקה");
+            const reactQueryGet = await GoogleSheetsService.fetchSheetData(accessToken, "מלאי אופטיקה");
             const rowCol = GoogleSheetsService.findInsertIndex(reactQueryGet.values, clickedCellInfo.colName);
             const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
