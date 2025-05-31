@@ -1,12 +1,29 @@
-/* App.css */
+/* Scope Tailwind Preflight to the .tailwind-wrapper only */
+.tailwind-wrapper {
+    @import "tailwindcss/preflight";
+}
+
+/* Load Tailwind layers globally (utilities and components) */
+@tailwind components;
+@tailwind utilities;
+
+/* ---- Ag-Grid Custom Styles ---- */
+
+/* Highlight hovered cell */
 .ag-theme-alpine .ag-cell:hover {
     background-color: #f0f8ff;
     cursor: pointer;
 }
 
-/* App.css or any global stylesheet */
+/* Optional: Red hover when hover-enabled class exists */
 .ag-theme-alpine .ag-cell.hover-enabled:hover {
-    background-color: #FFCCCB; /* light blue */
+    background-color: #FFCCCB;
     cursor: pointer;
 }
 
+/* Reset some styles potentially overridden by Tailwind */
+.ag-theme-alpine {
+    font-family: inherit;
+    line-height: normal;
+    box-sizing: content-box;
+}

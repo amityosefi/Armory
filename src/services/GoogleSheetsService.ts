@@ -11,6 +11,9 @@ class GoogleSheetsService {
             );
 
             if (!response.ok) {
+                if (response.status === 401) {
+                    alert("Refresh the page and Sign in again to continue using the app.");
+                }
                 throw new Error('Failed to fetch data');
             }
 
@@ -37,8 +40,11 @@ class GoogleSheetsService {
         );
 
         if (!response.ok) {
+            if (response.status === 401) {
+                alert("Refresh the page and Sign in again to continue using the app.");
+            }
             const errorData = await response.json();
-            throw new Error(`Failed to append data: ${JSON.stringify(errorData)}`);
+            console.error('Failed to append data:', errorData);
         }
 
         return await response.json();
@@ -165,6 +171,9 @@ class GoogleSheetsService {
         );
 
         if (!res.ok) {
+            if (res.status === 401) {
+                alert("Refresh the page and Sign in again to continue using the app.");
+            }
             const error = await res.json();
             console.log(`Failed to update/append: ${JSON.stringify(error)}`)
             return false;
