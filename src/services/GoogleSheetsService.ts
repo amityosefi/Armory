@@ -229,6 +229,55 @@ class GoogleSheetsService {
         return letter;
     }
 
+    /**
+     * Removes a row from a Google Sheet
+     * @param accessToken - Google API access token
+     * @param sheetId - The ID of the sheet (not the spreadsheet ID)
+     * @param rowIndex - 0-based row index to remove
+     * @returns Promise<boolean> - True if successful, false otherwise
+     */
+    static async removeRow({
+        accessToken,
+        sheetId,
+        rowIndex
+    }: {
+        accessToken: string;
+        sheetId: number;
+        rowIndex: number; // 0-based
+    }): Promise<boolean> {
+        const requests = [{
+            deleteDimension: {
+                range: {
+                    sheetId: sheetId,
+                    dimension: "ROWS",
+                    startIndex: rowIndex,
+                    endIndex: rowIndex + 1
+                }
+            }
+        }];
+
+        const res = await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}:batchUpdate`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ requests }),
+            }
+        );
+
+        if (!res.ok) {
+            const error = await res.json();
+            console.log(`Failed to remove row: ${JSON.stringify(error)}`);
+            return false;
+        }
+
+        console.log(`✅ Successfully removed row at index ${rowIndex}`);
+        return true;
+    }
+
     /*
     static async getSheetIdByName({
                                       accessToken,

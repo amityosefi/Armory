@@ -100,7 +100,8 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
         accessToken,
         sheetGroups,
         selectedRow,
-        headersStartingFromG
+        headersStartingFromG,
+        selectedSheet.range
       );
       
       // Show success message
