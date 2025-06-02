@@ -230,32 +230,15 @@ class GoogleSheetsService {
     }
 
     /**
-     * Removes a row from a Google Sheet
+     * Executes multiple operations in a single batch update
      * @param accessToken - Google API access token
-     * @param sheetId - The ID of the sheet (not the spreadsheet ID)
-     * @param rowIndex - 0-based row index to remove
+     * @param requests - Array of request objects for the batch update
      * @returns Promise<boolean> - True if successful, false otherwise
      */
-    static async removeRow({
-        accessToken,
-        sheetId,
-        rowIndex
-    }: {
-        accessToken: string;
-        sheetId: number;
-        rowIndex: number; // 0-based
-    }): Promise<boolean> {
-        const requests = [{
-            deleteDimension: {
-                range: {
-                    sheetId: sheetId,
-                    dimension: "ROWS",
-                    startIndex: rowIndex,
-                    endIndex: rowIndex + 1
-                }
-            }
-        }];
-
+    static async executeBatchUpdate(
+        accessToken: string,
+        requests: any[]
+    ): Promise<boolean> {
         const res = await fetch(
             `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}:batchUpdate`,
             {
@@ -270,11 +253,11 @@ class GoogleSheetsService {
 
         if (!res.ok) {
             const error = await res.json();
-            console.log(`Failed to remove row: ${JSON.stringify(error)}`);
+            console.error(`Failed to execute batch update: ${JSON.stringify(error)}`);
             return false;
         }
 
-        console.log(`✅ Successfully removed row at index ${rowIndex}`);
+        console.log(`✅ Successfully executed batch update with ${requests.length} operations`);
         return true;
     }
 
