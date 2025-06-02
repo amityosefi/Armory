@@ -28,6 +28,9 @@ export const creditSoldier = async (
   }
 
   try {
+    // Collect all requests for batch update
+    const batchRequests = [];
+
     // PART 1: Handle armory inventory sheet
     // Get data from the armory inventory sheet
     const encodedArmoryRange = encodeURIComponent(armoryInventorySheet.range);
@@ -41,8 +44,8 @@ export const creditSoldier = async (
       throw new Error('No data found in armory inventory sheet');
     }
 
-    const weaponType = selectedRow['סוג_נשק']; // Get weapon type from selected row
-    const serial = selectedRow['מסד']; // Get serial number from selected row
+    const weaponType = selectedRow['סוג_נשק'];
+    const serial = selectedRow['מסד'];
 
     // Extract the header row to find the column for weaponType
     const armoryHeaderRow = armoryResult.values[0] || [];
@@ -55,23 +58,19 @@ export const creditSoldier = async (
     }
     
     // Determine the next row to insert data
-    const armoryNextRow = armoryResult.values.length + 1;
     
-    // Convert column index to letter (A, B, C, etc.)
-    const weaponColumnLetter = String.fromCharCode(65 + weaponColumnIndex); // A=65 in ASCII
-    
-    // Prepare data for insertion with serial in the correct column
-    const armoryRange = `${armoryInventorySheet.name}!${weaponColumnLetter}${armoryNextRow}:${weaponColumnLetter}${armoryNextRow}`;
-    console.log("matan: ", armoryRange);
-    // Create a row with the serial in the right position
-    const armoryValues = [[serial]];
-    
-    // Insert data into the armory inventory sheet
-    await GoogleSheetsService.appendSheetData(
-      accessToken,
-      armoryRange,
-      armoryValues
-    );
+    // Add request to update armory inventory
+    batchRequests.push({
+      appendCells: {
+        sheetId: armoryInventorySheet.id,
+        rows: [{
+          values: Array(weaponColumnIndex).fill({ userEnteredValue: { stringValue: '' } }).concat([
+            { userEnteredValue: { stringValue: serial } }
+          ])
+        }],
+        fields: 'userEnteredValue'
+      }
+    });
     
     // PART 2: Handle optical inventory sheet
     // Get data from the optical inventory sheet
@@ -87,42 +86,41 @@ export const creditSoldier = async (
     }
     
     // Determine the next row to insert data
-    const opticalNextRow = opticalResult.values.length + 1;
     
-    // Check the 'כוונת' field value and prepare appropriate data for columns A and B
+    // Check the 'כוונת' field value
     const sightType = selectedRow?.['כוונת'];
     
-    // First, create a new empty row in the optics sheet
-    // We'll use column A as our anchor point to create the row
-    await GoogleSheetsService.updateGoogleSheetCell({
-      accessToken,
-      sheetName: opticalInventorySheet.name,
-      rowIndex: opticalNextRow,
-      colIndex: sightType === 'M5' ? 3 : 1, // Column D or B
-      value: ['M5', 'מפרו'].includes(sightType) ? '1' : ''
-    });
-
-    // Fetch the optical sheet headers to map correctly
+    // Prepare optical inventory update row
     const opticalHeaderRow = opticalResult.values[0] || [];
-
+    
+    // Create a complete row for the optics sheet
+    const opticsRow = Array(opticalHeaderRow.length).fill({ userEnteredValue: { stringValue: '' } });
+    
+    // Set M5 or מפרו in the appropriate column
+    if (sightType === 'M5') {
+      opticsRow[2] = { userEnteredValue: { stringValue: '1' } }; // Column C (index 2)
+    } else if (sightType === 'מפרו') {
+      opticsRow[0] = { userEnteredValue: { stringValue: '1' } }; // Column A (index 0)
+    }
+    
     // Update each column from headersStartingFromG in the appropriate position
     for (const header of headersStartingFromG) {
       const value = selectedRow?.[header] || '';
-      
-      // Find the matching column in the optics sheet
       const columnIndex = opticalHeaderRow.findIndex((h:string) => h === header);
       
-      // If column exists in the optics sheet, update it
       if (columnIndex !== -1) {
-        await GoogleSheetsService.updateGoogleSheetCell({
-          accessToken,
-          sheetName: opticalInventorySheet.name,
-          rowIndex: opticalNextRow,
-          colIndex: columnIndex,
-          value: value
-        });
+        opticsRow[columnIndex] = { userEnteredValue: { stringValue: value } };
       }
     }
+    
+    // Add request to update optical inventory
+    batchRequests.push({
+      appendCells: {
+        sheetId: opticalInventorySheet.id,
+        rows: [{ values: opticsRow }],
+        fields: 'userEnteredValue'
+      }
+    });
     
     // PART 3: Remove the soldier from the soldier sheet
     if (selectedRow.rowIndex !== -1) {
@@ -133,23 +131,34 @@ export const creditSoldier = async (
       }
       
       const sheetId = sheetInfo.sheet.id;
-      const rowIndexToRemove = selectedRow.rowIndex + 1;
+      const rowIndexToRemove = selectedRow.rowIndex;
       
-      // Remove the row properly instead of filling with empty values
-      const removed = await GoogleSheetsService.removeRow({
-        accessToken,
-        sheetId,
-        rowIndex: rowIndexToRemove
+      // Add request to remove row
+      batchRequests.push({
+        deleteDimension: {
+          range: {
+            sheetId: sheetId,
+            dimension: "ROWS",
+            startIndex: rowIndexToRemove + 1,
+            endIndex: rowIndexToRemove + 2
+          }
+        }
       });
-      
-      if (!removed) {
-        throw new Error(`Failed to remove row at index ${rowIndexToRemove}`);
-      }
-      
-      console.log(`Successfully removed soldier at row index ${rowIndexToRemove}`);
     }
+    
+    // Execute all operations in a single batch update
+    const batchUpdateSuccess = await GoogleSheetsService.executeBatchUpdate(
+      accessToken, 
+      batchRequests
+    );
+    
+    if (!batchUpdateSuccess) {
+      throw new Error('Failed to complete batch update operations');
+    }
+    
+    console.log('Successfully credited soldier with batch update');
 
-      } catch (error) {
+  } catch (error) {
     console.error('Error crediting soldier:', error);
     throw error;
   }
