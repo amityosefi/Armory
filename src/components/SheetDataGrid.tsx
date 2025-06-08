@@ -1,65 +1,128 @@
-import React, {useRef, useState} from 'react';
+import React, {  useRef, useState, useEffect } from 'react';
 import {AgGridReact} from 'ag-grid-react';
 import GoogleSheetsService from "../services/GoogleSheetsService";
-import {DEFAULT_SPREADSHEET_ID} from '../constants';
 import ConfirmDialog from "./feedbackFromBackendOrUser/DialogCheckForRemoval.tsx";
 import StatusMessageProps from "./feedbackFromBackendOrUser/StatusMessageProps.tsx";
 import type {GridReadyEvent, GridApi} from 'ag-grid-community';
 import ComboBoxEditor from './ComboBoxEditor';
+import {useGoogleSheetData} from "./hooks/useGoogleSheetData.tsx";
 
 
 interface SheetDataGridProps {
     accessToken: string;
-    currentGroup: any[];
     columnDefs: any[];
     rowData: any[];
-    groupIndex: number;
+    selectedSheet: {
+    name: string
+    range: string
+    id: number
+};
     onRowSelected?: (row: any) => void;
-    onCreditSoldier?: (weaponType: string, serial: string, selectedRow: any) => void; // Updated prop type
 }
 
 const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                                                          accessToken,
-                                                         currentGroup,
                                                          columnDefs: incomingColumnDefs,
                                                          rowData,
-                                                         groupIndex,
-                                                         onRowSelected,
-                                                         onCreditSoldier
+                                                         selectedSheet: selectedSheet,
+                                                         onRowSelected
                                                      }) => {
+
+    const {
+        data: sheetQueryData,
+        refetch
+    } = useGoogleSheetData(
+        {
+            accessToken,
+            range: selectedSheet.range
+        },
+        {
+            // Don't process data here, we'll do it with custom logic below
+            processData: false,
+            enabled: !!accessToken
+        }
+    );
+    const {
+        data: opticsData,
+    } = useGoogleSheetData(
+        {
+            accessToken,
+            range: "מלאי אופטיקה"
+        },
+        {
+            // Don't process data here, we'll do it with custom logic below
+            processData: false,
+            enabled: !!accessToken
+        }
+    );
+
+    const {
+        data: weaponData,
+    } = useGoogleSheetData(
+        {
+            accessToken,
+            range: "מלאי נשקיה"
+        },
+        {
+            // Don't process data here, we'll do it with custom logic below
+            processData: false,
+            enabled: !!accessToken
+        }
+    );
 
 
     const [dropdownOptions, setDropdownOptions] = useState<{ rowIndex: number, colIndex: number, value: string }[]>([]);
     const [showComboBox, setShowComboBox] = useState(false);
     const [searchText, setSearchText] = useState('');
-
     const [filteredOptions, setFilteredOptions] = useState<typeof dropdownOptions>([]);
 
     const [highlightedIndex, setHighlightedIndex] = useState(0);
+    const comboBoxRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (
+                comboBoxRef.current &&
+                !comboBoxRef.current.contains(event.target as Node)
+            ) {
+                setShowComboBox(false);
+            }
+        }
 
+        if (showComboBox) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showComboBox]);
 
     const columnDefs = incomingColumnDefs.map(col => {
-        const hoverExcludedFields = ['מספר_סידורי', 'סוג_נשק', 'מסד'];
+        const hoverExcludedFields = ['סוג_נשק', 'שם_מלא', 'הערות'];
         const shouldEnableHover = !hoverExcludedFields.includes(col.field);
 
         // Add condition for your dropdown editable field, e.g. 'מספר_סידורי'
-        const isDropdownField = col.field === 'מספר_סידורי';
 
         return {
             ...col,
-            editable: ['הערות', 'שם_מלא'].includes(col.field) || isDropdownField,
-            cellEditor: isDropdownField ? 'comboBoxEditor' : ['הערות', 'שם_מלא'].includes(col.field) ? 'agTextCellEditor' : undefined,
-            cellEditorParams: isDropdownField
-                ? {values: dropdownOptions}
-                : ['הערות', 'שם_מלא'].includes(col.field)
-                    ? {maxLength: 200}
+            editable: ['הערות', 'שם_מלא'].includes(col.field),
+            pinned: col.field === 'שם_מלא' ? 'right' : undefined, // 👈 Pin only 'שם_מלא'
+            filterParams: {
+                filterOptions: ['contains'],
+                suppressAndOrCondition: true,
+            },
+            cellEditor: ['הערות', 'שם_מלא'].includes(col.field) ? 'agTextCellEditor' : undefined,
+            cellEditorParams: ['הערות', 'שם_מלא'].includes(col.field)
+                    ? {maxLength: 100}
                     : undefined,
-            cellClass: shouldEnableHover ? 'hover-enabled' : undefined,
+            cellClass: shouldEnableHover && isGroupSheet() ? 'hover-enabled' : undefined,
+            hide: ['חתימה','פלאפון','מספר_אישי'].includes(col.field)
         };
     });
 
 
     const gridApiRef = useRef<GridApi | null>(null);
+
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [clickedCellInfo, setClickedCellInfo] = useState<{
         rowIndex: number;
@@ -78,19 +141,12 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     const [isSuccess, setIsSuccess] = useState(false);
     const [message, setMessage] = useState('');
 
-    // Function to handle crediting soldier
-    const handleCreditSoldier = () => {
-        if (selectedRow) {
-            const weaponType = selectedRow['סוג_נשק']; // Get weapon type from selected row
-            const serial = selectedRow['מסד']; // Get serial number from selected row
 
-            console.log('Crediting soldier with weapon:', weaponType, 'serial:', serial);
-
-            if (onCreditSoldier && weaponType && serial) {
-                onCreditSoldier(weaponType, serial, selectedRow);
-            }
-        }
-    };
+    function isGroupSheet(){
+        const groupName = selectedSheet.range;
+        const groupNames = ['א', 'ב', 'ג', 'מסייעת','מכלול','פלסם','אלון']; // List your פלוגות sheets here
+        return groupNames.includes(groupName);
+    }
 
     function handleOldValue(rowIndex: number, colIName: string, value: any) {
         const api = gridApiRef.current;
@@ -102,23 +158,33 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
     async function onClickedOptic(event: any) {
 
-        const col = event.colDef.field;
-        const value = event.value;
-        const data = event.data; // Get the entire row data
-        const headersNames = ['מספר_סידורי', 'סוג_נשק', 'מסד', 'שם_מלא', 'הערות']
+        let col = event.colDef.field;
+        let value = event.value;
+        if (col === 'כוונת') {
+            col = value;
+            value = "1";
+        }
         setClickedCellInfo({
             rowIndex: event.rowIndex,
-            colName: event.colDef.field,
+            colName: col,
             value: value,
             oldValue: event.oldValue,
-            row: data,
+            row: event.data,
             colIndex: event.column
         });
+        if (!isGroupSheet() || ['שם_מלא', 'הערות'].includes(col))
+            return;
+
+        const headersNames = ['סוג_נשק', 'שם_מלא', 'הערות']
         if ((value !== undefined && value !== null && value !== '') && !headersNames.includes(col.toString())) {
+            if (col === 'מסד') {
+                // @ts-ignore
+                setClickedCellInfo((prev) => ({ ...prev, colName: prev?.row['סוג_נשק']}));
+            }
             setShowConfirmDialog(true);
         } else {
-            const reactQueryGet = await GoogleSheetsService.fetchSheetData(accessToken, "מלאי אופטיקה");
-            const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(reactQueryGet.values, event.colDef.field);
+            // const reactQueryGet = await GoogleSheetsService.fetchSheetData(accessToken, "מלאי אופטיקה");
+            const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(opticsData.values, col);
             const uniqueOptionsMap = new Map<string, { rowIndex: number, colIndex: number, value: string }>();
             valuesForAssign.forEach(item => {
                 if (!uniqueOptionsMap.has(item.value)) {
@@ -137,22 +203,33 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     async function handleConfirmOpticCredit() {
         if (clickedCellInfo) {
             const msg = clickedCellInfo.row["שם_מלא"] + " זיכה " + clickedCellInfo.colName + " " + clickedCellInfo.value;
-            const reactQueryGet = await GoogleSheetsService.fetchSheetData(accessToken, DEFAULT_SPREADSHEET_ID, "מלאי אופטיקה");
-            const rowCol = GoogleSheetsService.findInsertIndex(reactQueryGet.values, clickedCellInfo.colName);
+            const columnFields = columnDefs.map(col => col.field);
+            // const reactQueryGet = await GoogleSheetsService.fetchSheetData(accessToken, "מלאי אופטיקה");
+                let rowCol;
+                let colIndex;
+                let sheetid;
+            if (columnFields.includes(clickedCellInfo.colName) || clickedCellInfo.colName === "M5" || clickedCellInfo.colName === "מאפרולייט") {
+                rowCol = GoogleSheetsService.findInsertIndex(opticsData.values, clickedCellInfo.colName);
+                colIndex = clickedCellInfo.colName === "M5" || clickedCellInfo.colName === "מאפרולייט" ? 'כוונת' : clickedCellInfo.colName;
+                sheetid = 813181890;
+            } else {
+                rowCol = GoogleSheetsService.findInsertIndex(weaponData.values, clickedCellInfo.colName);
+                colIndex = clickedCellInfo.colName;
+                sheetid = 439908422;
+            }
             const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
-                spreadsheetId: DEFAULT_SPREADSHEET_ID,
                 updates: [
                     {
-                        sheetId: 813181890,
+                        sheetId: sheetid,
                         rowIndex: rowCol.row,
                         colIndex: rowCol.col,
                         value: clickedCellInfo.value
                     },
                     {
-                        sheetId: currentGroup[groupIndex].id,
+                        sheetId: selectedSheet.id,
                         rowIndex: clickedCellInfo.rowIndex + 1,
-                        colIndex: columnDefs.findIndex(c => c.headerName === clickedCellInfo.colName),
+                        colIndex: columnDefs.findIndex(col => col.field === colIndex),
                         value: ""
                     }],
                 appendSheetId: 553027487,
@@ -162,6 +239,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             setShowConfirmDialog(false);
             setIsSuccess(response);
             setMessage(response ? msg : ` בעיה בזיכוי ${clickedCellInfo.colName}`);
+            refetch()
             handleOldValue(clickedCellInfo.rowIndex, clickedCellInfo.colName, "");
             if (!response) {
                 isRevertingNameOrComment.current = true;
@@ -178,7 +256,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         const msg = `האמרל ${clickedCellInfo.colName} ${option.value} הוחתם בהצלחה לחייל ${clickedCellInfo.row["שם_מלא"]} `;
         const response = await GoogleSheetsService.updateCalls({
             accessToken: accessToken,
-            spreadsheetId: DEFAULT_SPREADSHEET_ID,
             updates: [
                 {
                     sheetId: 813181890,
@@ -187,9 +264,9 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     value: ""
                 },
                 {
-                    sheetId: currentGroup[groupIndex].id,
+                    sheetId: selectedSheet.id,
                     rowIndex: clickedCellInfo.rowIndex + 1,
-                    colIndex: columnDefs.findIndex(c => c.headerName === clickedCellInfo.colName),
+                    colIndex: columnDefs.findIndex(c => c.field === clickedCellInfo.colName),
                     value: option.value
                 }],
             appendSheetId: 553027487,
@@ -198,6 +275,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         setShowMessage(true);
         setIsSuccess(response);
         setMessage(response ? msg : ` בעיה בהחתמת האמרל ${clickedCellInfo.colName}`);
+        refetch()
         if (response) {
             handleOldValue(clickedCellInfo.rowIndex, clickedCellInfo.colName, option.value);
         }
@@ -209,19 +287,17 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             isRevertingNameOrComment.current = false;
             return;
         }
-        if (event.colIndex === 4 || event.colIndex === 5) {
-
+        if (event.colDef.field === 'הערות' || event.colDef.field === 'שם_מלא') {
             const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
-                spreadsheetId: DEFAULT_SPREADSHEET_ID,
                 updates: [{
-                    sheetId: currentGroup[groupIndex].id,
+                    sheetId: selectedSheet.id,
                     rowIndex: event.rowIndex + 1,
-                    colIndex: event.colDef.field === "שם_מלא" ? 4 : 5,
+                    colIndex: columnDefs.findIndex(c => c.field === event.colDef.field),
                     value: event.newValue ?? ""
                 }],
                 appendSheetId: 553027487,
-                appendValues: [["חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field, new Date().toString()]]
+                appendValues: [["חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field + ': ' + event.newValue, new Date().toString()]]
             });
 
 
@@ -232,6 +308,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 isRevertingNameOrComment.current = true;
                 event.node.setDataValue(event.column.getId(), event.oldValue);
             }
+            refetch();
         }
 
     }
@@ -241,6 +318,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         <>
             {showComboBox && (
                 <div
+                    ref={comboBoxRef}
                     className="absolute z-50 bg-white shadow-xl rounded-lg w-72 border border-gray-300 animate-fadeIn backdrop-blur-md"
                     style={{top: 100, left: 100}} // Optional: make dynamic later
                     role="listbox"
@@ -291,7 +369,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 </div>
             )}
 
-
             {showMessage && (
                 <div>
                     <StatusMessageProps
@@ -318,10 +395,11 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     enableRtl={true}
                     defaultColDef={{
                         flex: 1,
-                        minWidth: 100,
+                        minWidth: 200,
                         resizable: true
                     }}
                     rowSelection="single"
+                    isRowSelectable={() => isGroupSheet()}
                     suppressRowClickSelection={true}
                     onCellClicked={(event) => {
                         onClickedOptic(event);
@@ -357,7 +435,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 {showConfirmDialog && clickedCellInfo && (
                     <div>
                         <ConfirmDialog
-                            show={showConfirmDialog}
                             clickedCellInfo={clickedCellInfo}
                             onConfirm={() => handleConfirmOpticCredit()}
                             onCancel={() => setShowConfirmDialog(false)}

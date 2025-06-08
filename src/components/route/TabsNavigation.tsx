@@ -3,13 +3,15 @@ interface TabsNavigationProps {
   activeTabIndex: number;
   onTabChange: (index: number) => void;
   creditButton?: React.ReactNode; // Add this prop to accept the credit button
+  assignWeaponButton?: React.ReactNode; // Add this prop to accept the credit button
 }
 
 function TabsNavigation({ 
   sheets, 
   activeTabIndex, 
   onTabChange,
-  creditButton // Accept the credit button
+  creditButton,
+  assignWeaponButton                   // Accept the credit button
 }: TabsNavigationProps) {
   return (
     <div className="mb-4 border-b border-gray-200 flex justify-between items-center">
@@ -30,6 +32,7 @@ function TabsNavigation({
       
       {/* Render the credit button if provided */}
       {creditButton}
+      {assignWeaponButton}
     </div>
   );
 }
