@@ -22,7 +22,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   return (
     <div className="flex flex-col items-center justify-center w-full h-[75vh] max-w-2xl">
       <div className="bg-white shadow-lg rounded-lg p-6 w-full">
-        <h1 className="text-4xl font-bold text-gray-800 mb-6 text-center">Armory</h1>
+        <h1 className="text-4xl font-bold text-gray-800 mb-6 text-center">נשקיה 8101</h1>
         <div className="flex flex-col items-center">
           <p className="text-gray-700 mb-4">Please sign in with Google to access your spreadsheet data</p>
           <button

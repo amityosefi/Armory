@@ -1,0 +1,417 @@
+import React, { useEffect, useState, useRef } from "react";
+import SignatureCanvas from "react-signature-canvas";
+import { useGoogleSheetData } from "./hooks/useGoogleSheetData.tsx";
+import Select from "react-select";
+
+interface AssignWeaponProps {
+    accessToken: string;
+    formValues: {
+        fullName: string;
+        personalNumber: number | string;
+        phone: number | string;
+        weaponName: string;
+        intentionName: string;
+        serialNumber: string;
+        signature: string;
+    };
+    setFormValues: React.Dispatch<
+        React.SetStateAction<{
+            fullName: string;
+            personalNumber: number | string;
+            phone: number | string;
+            weaponName: string;
+            intentionName: string;
+            serialNumber: string;
+            signature: string;
+        }>
+    >;
+    onConfirm: () => void;
+    onCancel: () => void;
+    setSelectedSerialInfo: (
+        info: { value: string; rowIndex: number; colIndex: number } | null
+    ) => void;
+    selectedOptic: {
+        label: any; rowIndex: number; colIndex: number
+    } | null;
+    setSelectedOptic: React.Dispatch<
+        React.SetStateAction<
+            {
+                label: string;
+                rowIndex: number;
+                colIndex: number;
+            } | null
+        >
+    >;
+    setShowDialog?: (show: boolean) => void;
+    setAssignSoldier?: (assign: boolean) => void;
+}
+
+const AssignWeapon: React.FC<AssignWeaponProps> = ({
+                                                       accessToken,
+                                                       formValues,
+                                                       setFormValues,
+                                                       onConfirm,
+                                                       onCancel,
+                                                       setSelectedSerialInfo,
+                                                       selectedOptic,
+                                                       setSelectedOptic,
+                                                       setShowDialog,
+                                                       setAssignSoldier,
+                                                   }) => {
+    const { data: opticsData } = useGoogleSheetData(
+        {
+            accessToken,
+            range: "מלאי אופטיקה",
+        },
+        {
+            processData: false,
+            enabled: !!accessToken,
+        }
+    );
+
+    const { data: weaponData } = useGoogleSheetData(
+        {
+            accessToken,
+            range: "מלאי נשקיה",
+        },
+        {
+            processData: false,
+            enabled: !!accessToken,
+        }
+    );
+
+    const { data: peopleData } = useGoogleSheetData(
+        {
+            accessToken,
+            range: "דוח1",
+        },
+        {
+            processData: false,
+            enabled: !!accessToken,
+        }
+    );
+
+    const [serialNumbers, setSerialNumbers] = useState<
+        { value: string; rowIndex: number; colIndex: number }[]
+    >([]);
+    const [opticOptions, setOpticOptions] = useState<
+        { label: string; rowIndex: number; colIndex: number }[]
+    >([]);
+
+    const modalRef = useRef<HTMLDivElement>(null);
+    const sigPadRef = useRef<SignatureCanvas>(null);
+    const [signatureData, setSignatureData] = useState<string | null>(null);
+
+
+    const saveSignature = () => {
+        if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
+            const dataURL = sigPadRef.current.getTrimmedCanvas().toDataURL("image/png");
+            setSignatureData(dataURL);
+            setFormValues((prev) => ({ ...prev, signature: dataURL }));
+
+        }
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+                onCancel();
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [onCancel]);
+
+    useEffect(() => {
+        if (!opticsData?.values?.length) return;
+
+        try {
+            const headers = opticsData.values[0];
+            const validTypes = ["M5", "מפרולייט"];
+            const newOpticOptions: { label: string; rowIndex: number; colIndex: number }[] = [];
+
+            validTypes.forEach((type) => {
+                const colIndex = headers.indexOf(type);
+                if (colIndex === -1) return;
+
+                for (let rowIndex = 1; rowIndex < opticsData.values.length; rowIndex++) {
+                    const cellValue = opticsData.values[rowIndex][colIndex];
+                    if (cellValue?.trim()) {
+                        newOpticOptions.push({
+                            label: `${type}: ${cellValue}`,
+                            rowIndex,
+                            colIndex,
+                        });
+                    }
+                }
+            });
+
+            setOpticOptions(newOpticOptions);
+        } catch (error) {
+            console.error("Error processing optics data:", error);
+        }
+    }, [opticsData]);
+
+    useEffect(() => {
+        if (!formValues.weaponName || !weaponData?.values?.length) {
+            setSerialNumbers([]);
+            return;
+        }
+
+        const headers = weaponData.values[0];
+        const colIndex = headers.indexOf(formValues.weaponName);
+        if (colIndex === -1) {
+            setSerialNumbers([]);
+            return;
+        }
+
+        const serials = weaponData.values
+            .slice(1)
+            .map((row: any[], i: number) => ({
+                value: row[colIndex],
+                rowIndex: i + 1,
+                colIndex,
+            }))
+            .filter((s) => s.value?.trim());
+
+        setSerialNumbers(serials);
+    }, [formValues.weaponName, weaponData]);
+
+    const clearSignature = () => {
+        sigPadRef.current?.clear();
+        setSignatureData(null);
+        setFormValues((prev) => ({ ...prev, signature: "" }));
+    };
+
+    const isFormValid = () =>
+        formValues.fullName.trim() &&
+        formValues.weaponName.trim() &&
+        (formValues.personalNumber !== "" && formValues.personalNumber !== null) &&
+        (formValues.phone !== "" && formValues.phone !== null) &&
+        formValues.serialNumber.trim() &&
+        formValues.signature.trim();
+
+    const formatPhone = (raw: string): string => {
+        if (raw.length === 10) return `${raw.slice(0, 3)}-${raw.slice(3)}`;
+        return raw;
+    };
+
+    const handleSubmit = () => {
+        if (!peopleData?.values) {
+            onConfirm();
+            return;
+        }
+        const phoneStr = formValues.phone.toString();
+        const personalNumberStr = formValues.personalNumber.toString();
+
+        const phoneMatch = peopleData.values.some((row: string[]) =>
+            row.includes(formatPhone(phoneStr))
+        );
+        const idMatch = peopleData.values.some((row: string[]) => row.includes(personalNumberStr));
+
+        if (phoneMatch || idMatch) {
+            onConfirm();
+        } else {
+            if (setShowDialog) setShowDialog(true);
+            if (setAssignSoldier) setAssignSoldier(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div ref={modalRef} className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                <h2 className="text-lg font-bold mb-4 text-right">החתמת חייל</h2>
+                <div className="space-y-4">
+                    {/* Full Name */}
+                    <div>
+                        <label className="block text-right font-medium">שם מלא של החייל</label>
+                        <input
+                            type="text"
+                            className="w-full border p-2 rounded text-right"
+                            value={formValues.fullName}
+                            onChange={(e) =>
+                                setFormValues((prev) => ({ ...prev, fullName: e.target.value }))
+                            }
+                        />
+                    </div>
+
+                    {/* Personal Number */}
+                    <div>
+                        <label className="block text-right font-medium">מספר אישי</label>
+                        <input
+                            type="text"
+                            className="w-full border p-2 rounded text-right"
+                            value={formValues.personalNumber?.toString() || ""}
+                            onChange={(e) => {
+                                const value = e.target.value.replace(/\D/g, "");
+                                setFormValues((prev) => ({ ...prev, personalNumber: value }));
+                            }}
+                        />
+                    </div>
+
+                    {/* Phone */}
+                    <div>
+                        <label className="block text-right font-medium">פלאפון</label>
+                        <input
+                            type="text"
+                            className="w-full border p-2 rounded text-right"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={formValues.phone?.toString() || ""}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                if (/^\d*$/.test(value)) {
+                                    setFormValues((prev) => ({ ...prev, phone: value }));
+                                }
+                            }}
+                        />
+                    </div>
+
+                    {/* Weapon Type */}
+                    <div>
+                        <label className="block text-right font-medium">סוג נשק</label>
+                        <select
+                            className="w-full border p-2 rounded text-right"
+                            value={formValues.weaponName}
+                            onChange={(e) =>
+                                setFormValues((prev) => ({ ...prev, weaponName: e.target.value, serialNumber: "" }))
+                            }
+                        >
+                            <option value="">בחר סוג נשק</option>
+                            {weaponData?.values?.[0]?.slice(1).map((w: string, i: number) => (
+                                <option key={i} value={w}>
+                                    {w}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-right font-medium">מספר סידורי</label>
+                        <Select
+                            className="text-right"
+                            options={serialNumbers.map((s) => ({ value: s.value, label: s.value }))}
+                            value={
+                                serialNumbers.find((s) => s.value === formValues.serialNumber)
+                                    ? { value: formValues.serialNumber, label: formValues.serialNumber }
+                                    : null
+                            }
+                            onChange={(selectedOption) => {
+                                if (selectedOption) {
+                                    const selected = serialNumbers.find(
+                                        (s) => s.value === selectedOption.value
+                                    ) || null;
+                                    setSelectedSerialInfo(selected);
+                                    setFormValues((prev) => ({ ...prev, serialNumber: selectedOption.value }));
+                                } else {
+                                    setSelectedSerialInfo(null);
+                                    setFormValues((prev) => ({ ...prev, serialNumber: "" }));
+                                }
+                            }}
+                            isClearable
+                            placeholder="בחר מספר סידורי"
+                            noOptionsMessage={() => "לא נמצאו אפשרויות"}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-right font-medium">סוג כוונת</label>
+                        <Select
+                            className="text-right"
+                            options={opticOptions.map((opt) => ({
+                                value: `${opt.rowIndex}-${opt.colIndex}`,
+                                label: opt.label,
+                            }))}
+                            value={
+                                opticOptions.find((s) => s.label === formValues.intentionName)
+                                    ? { value: formValues.intentionName, label: formValues.intentionName }
+                                    : null
+                            }
+                            onChange={(selectedOption) => {
+                                if (!selectedOption) {
+                                    setSelectedOptic(null);
+                                    setFormValues((prev) => ({ ...prev, intentionName: "" }));
+                                    return;
+                                }
+
+                                const [rowIndexStr, colIndexStr] = selectedOption.value.split("-");
+                                const rowIndex = parseInt(rowIndexStr, 10);
+                                const colIndex = parseInt(colIndexStr, 10);
+
+                                const chosen = opticOptions.find(
+                                    (opt) => opt.rowIndex === rowIndex && opt.colIndex === colIndex
+                                );
+
+                                if (chosen) {
+                                    setSelectedOptic(chosen);
+                                    setFormValues((prev) => ({
+                                        ...prev,
+                                        intentionName: chosen.label,
+                                    }));
+                                }
+                            }}
+                            isClearable
+                            placeholder="בחר כוונת"
+                            noOptionsMessage={() => "לא נמצאו אפשרויות"}
+                        />
+                    </div>
+
+
+                    {/* Signature */}
+                    <div>
+                        <label className="block text-right font-medium mb-1">חתימה</label>
+                        <SignatureCanvas
+                            ref={sigPadRef}
+                            penColor="black"
+                            onEnd={saveSignature}  // Automatically saves when drawing ends
+                            canvasProps={{
+                                width: 300,
+                                height: 150,
+                                className: "border border-gray-300 rounded",
+                                style: { direction: "ltr" },
+                            }}
+                            clearOnResize={false}
+                            backgroundColor="white"
+                        />
+                        <div className="mt-2 flex justify-end">
+                            <button
+                                type="button"
+                                onClick={clearSignature}
+                                className="text-sm text-red-600 hover:underline"
+                            >
+                                נקה חתימה
+                            </button>
+                        </div>
+                    </div>
+
+
+
+                    {/* Buttons */}
+                    <div className="flex justify-between mt-6">
+                        <button
+                            type="button"
+                            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                            onClick={onCancel}
+                        >
+                            ביטול
+                        </button>
+                        <button
+                            type="button"
+                            disabled={!isFormValid()}
+                            className={`px-4 py-2 rounded text-white ${
+                                isFormValid() ? "bg-blue-600 hover:bg-blue-700" : "bg-blue-300 cursor-not-allowed"
+                            }`}
+                            onClick={handleSubmit}
+                        >
+                            אשר
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default AssignWeapon;
