@@ -8,10 +8,12 @@ import SheetGroupPage from './components/SheetGroupPage'
 import { sheetGroups } from './constants'
 import GoogleSheetsService from './services/GoogleSheetsService'
 import './css/App.css';
+import useIsMobile from './hooks/useIsMobile'
 
 function App() {
   const [user, setUser] = useState<TokenResponse | null>(null)
   const [isValidatingToken, setIsValidatingToken] = useState<boolean>(true)
+  const isMobile = useIsMobile();
 
   // Function to validate access token by making a test request
   const validateAccessToken = async (token: string): Promise<boolean> => {
@@ -113,8 +115,8 @@ function App() {
               </div>
 
               <div className='flex gap-10'>
-                {/* Search Bar */}
-                <div>
+                {/* Search Bar - Desktop */}
+                <div className={isMobile ? 'hidden' : 'block'}>
                   <SearchBar sheetGroups={sheetGroups} accessToken={user.access_token} />
                 </div>
 
@@ -126,7 +128,10 @@ function App() {
                   Sign Out
                 </button>
               </div>
-
+            </div>
+            {/* Search Bar - Mobile */}
+            <div className={isMobile ? 'block mb-2' : 'hidden'}>
+              <SearchBar sheetGroups={sheetGroups} accessToken={user.access_token} />
             </div>
 
             <Routes>

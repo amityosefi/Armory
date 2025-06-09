@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import useIsMobile from '../../hooks/useIsMobile';
 
 interface TabsNavigationProps {
     sheets: Array<{ name: string, range: string }>;
@@ -18,19 +19,7 @@ function TabsNavigation({
     assignWeaponButton
 }: TabsNavigationProps) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
-
-    // Check if viewport is mobile size
-    useEffect(() => {
-        const checkIfMobile = () => {
-            setIsMobile(window.innerWidth < 768); // Adjust breakpoint as needed
-        };
-
-        checkIfMobile();
-        window.addEventListener('resize', checkIfMobile);
-
-        return () => window.removeEventListener('resize', checkIfMobile);
-    }, []);
+    const isMobile = useIsMobile();
 
     const toggleDropdown = () => {
         setIsDropdownOpen(!isDropdownOpen);
