@@ -101,12 +101,12 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
 
     const saveSignature = () => {
         if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
-            const dataURL = sigPadRef.current.getTrimmedCanvas().toDataURL("image/png");
+            const dataURL = sigPadRef.current.getCanvas().toDataURL("image/png");
             setSignatureData(dataURL);
             setFormValues((prev) => ({ ...prev, signature: dataURL }));
-
         }
     };
+
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
