@@ -116,7 +116,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     ? {maxLength: 100}
                     : undefined,
             cellClass: shouldEnableHover && isGroupSheet() ? 'hover-enabled' : undefined,
-            hide: ['חתימה','פלאפון','מספר_אישי'].includes(col.field)
+            hide: ['חתימה','זמן_חתימה','פלאפון','מספר_אישי'].includes(col.field)
         };
     });
 
@@ -202,6 +202,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
     async function handleConfirmOpticCredit() {
         if (clickedCellInfo) {
+            const userEmail = localStorage.getItem('userEmail');
             const msg = clickedCellInfo.row["שם_מלא"] + " זיכה " + clickedCellInfo.colName + " " + clickedCellInfo.value;
             const columnFields = columnDefs.map(col => col.field);
             // const reactQueryGet = await GoogleSheetsService.fetchSheetData(accessToken, "מלאי אופטיקה");
@@ -233,7 +234,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                         value: ""
                     }],
                 appendSheetId: 553027487,
-                appendValues: [[msg, new Date().toString()]]
+                appendValues: [[msg, new Date().toString(), userEmail ? userEmail : ""]]
             });
             setShowMessage(true);
             setShowConfirmDialog(false);
@@ -249,6 +250,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
     async function handleSelectOption(option: { rowIndex: number, colIndex: number, value: string }) {
         setShowComboBox(false);
+        const userEmail = localStorage.getItem('userEmail');
         if (!clickedCellInfo) {
             console.error("clickedCellInfo is null");
             return;
@@ -270,7 +272,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     value: option.value
                 }],
             appendSheetId: 553027487,
-            appendValues: [[msg, new Date().toString()]]
+            appendValues: [[msg, new Date().toString(), userEmail ? userEmail : ""]]
         });
         setShowMessage(true);
         setIsSuccess(response);
@@ -288,6 +290,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             return;
         }
         if (event.colDef.field === 'הערות' || event.colDef.field === 'שם_מלא') {
+            const userEmail = localStorage.getItem('userEmail');
             const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
                 updates: [{
@@ -297,7 +300,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     value: event.newValue ?? ""
                 }],
                 appendSheetId: 553027487,
-                appendValues: [["חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field + ': ' + event.newValue, new Date().toString()]]
+                appendValues: [["חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field + ': ' + event.newValue, new Date().toString(), userEmail ? userEmail : ""]]
             });
 
 
