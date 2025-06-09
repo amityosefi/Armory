@@ -124,7 +124,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     const gridApiRef = useRef<GridApi | null>(null);
 
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-    const [clickedCellInfo, setClickedCellInfo] = useState<{
+    const [event, setEvent] = useState<{
         rowIndex: number;
         colName: string;
         value: any;
@@ -156,34 +156,30 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     }
 
 
-    async function onClickedOptic(event: any) {
-
+    // @ts-ignore
+    async function handleEmptyCellClicked(event: any) : Promise<boolean> {
         let col = event.colDef.field;
-        let value = event.value;
-        if (col === 'כוונת') {
-            col = value;
-            value = "1";
-        }
-        setClickedCellInfo({
-            rowIndex: event.rowIndex,
-            colName: col,
-            value: value,
-            oldValue: event.oldValue,
-            row: event.data,
-            colIndex: event.column
-        });
-        if (!isGroupSheet() || ['שם_מלא', 'הערות'].includes(col))
-            return;
-
-        const headersNames = ['סוג_נשק', 'שם_מלא', 'הערות']
-        if ((value !== undefined && value !== null && value !== '') && !headersNames.includes(col.toString())) {
-            if (col === 'מסד') {
-                // @ts-ignore
-                setClickedCellInfo((prev) => ({ ...prev, colName: prev?.row['סוג_נשק']}));
-            }
-            setShowConfirmDialog(true);
+        let uniqueOptions;
+        if (event.colDef.field === 'כוונת') {
+            const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(opticsData.values, "מפרולייט");
+            const valuesForAssign2 = GoogleSheetsService.findValuesUnderHeader(opticsData.values, 'M5');
+            console.log("valuesForAssign", valuesForAssign);
+            console.log("valuesForAssign2", valuesForAssign2);
+            const uniqueOptionsMap = new Map<string, { rowIndex: number, colIndex: number, value: string }>();
+            valuesForAssign.forEach(item => {
+                if (!uniqueOptionsMap.has('מפרולייט ' + item.value)) {
+                    uniqueOptionsMap.set('מפרולייט ' + item.value, {...item, value: 'מפרולייט ' + item.value});
+                }
+            });
+            valuesForAssign2.forEach(item => {
+                if (!uniqueOptionsMap.has('M5 ' + item.value)) {
+                    uniqueOptionsMap.set('M5 ' + item.value, {...item, value: 'M5 ' + item.value});
+                }
+            });
+            uniqueOptions = Array.from(uniqueOptionsMap.values());
+            // feel here the missing input
         } else {
-            // const reactQueryGet = await GoogleSheetsService.fetchSheetData(accessToken, "מלאי אופטיקה");
+            // @ts-ignore
             const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(opticsData.values, col);
             const uniqueOptionsMap = new Map<string, { rowIndex: number, colIndex: number, value: string }>();
             valuesForAssign.forEach(item => {
@@ -191,57 +187,108 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     uniqueOptionsMap.set(item.value, item);
                 }
             });
-            const uniqueOptions = Array.from(uniqueOptionsMap.values());
+            uniqueOptions = Array.from(uniqueOptionsMap.values());
+        }
             setDropdownOptions(uniqueOptions);
             setFilteredOptions(uniqueOptions);
             setShowComboBox(true);
             setHighlightedIndex(0); // reset highlighted index
             setSearchText('');
+
+    }
+
+    // @ts-ignore
+    async function onClickedOptic(event: any) : Promise<boolean> {
+
+        // let col = event.colDef.field;
+        // let value = event.value;
+        // if (col === 'כוונת' && value) {
+        //     col = value;
+        //     value = "1";
+        // }
+        if (!isGroupSheet() || ['סוג_נשק', 'שם_מלא', 'הערות'].includes(event.colDef.field))
+            { // @ts-ignore
+                return;
+            }
+        setEvent({
+            rowIndex: event.rowIndex,
+            colName: event.colDef.field,
+            value: event.value,
+            oldValue: event.oldValue,
+            row: event.data,
+            colIndex: event.column
+        });
+        if (event.value !== undefined && event.value !== null && event.value !== '') {
+            // @ts-ignore
+            if (event.colDef.field === 'כוונת') {
+                // @ts-ignore
+                setEvent((prev) => ({...prev, value: "1", colName: prev?.row['כוונת']}));
+            }
+            else if (event.colDef.field === 'מסד') {
+                // @ts-ignore
+                setEvent((prev) => ({...prev, colName: prev?.row['סוג_נשק']}));
+            }
+            setShowConfirmDialog(true);
         }
+        else
+            await handleEmptyCellClicked(event);
+
     }
 
     async function handleConfirmOpticCredit() {
-        if (clickedCellInfo) {
+        if (event) {
             const userEmail = localStorage.getItem('userEmail');
-            const msg = clickedCellInfo.row["שם_מלא"] + " זיכה " + clickedCellInfo.colName + " " + clickedCellInfo.value;
+            const msg = event.row["שם_מלא"] + " זיכה " + event.colName + " " + event.value;
             const columnFields = columnDefs.map(col => col.field);
-            // const reactQueryGet = await GoogleSheetsService.fetchSheetData(accessToken, "מלאי אופטיקה");
                 let rowCol;
                 let colIndex;
                 let sheetid;
-            if (columnFields.includes(clickedCellInfo.colName) || clickedCellInfo.colName === "M5" || clickedCellInfo.colName === "מאפרולייט") {
-                rowCol = GoogleSheetsService.findInsertIndex(opticsData.values, clickedCellInfo.colName);
-                colIndex = clickedCellInfo.colName === "M5" || clickedCellInfo.colName === "מאפרולייט" ? 'כוונת' : clickedCellInfo.colName;
+                let anotherUpdate;
+            if (columnFields.includes(event.colName) || event.colName === "M5" || event.colName === "מאפרולייט") {
+                rowCol = GoogleSheetsService.findInsertIndex(opticsData.values, event.colName);
+                colIndex = event.colName === "M5" || event.colName === "מאפרולייט" ? 'כוונת' : event.colName;
                 sheetid = 813181890;
+                handleOldValue(event.rowIndex, colIndex, "");
             } else {
-                rowCol = GoogleSheetsService.findInsertIndex(weaponData.values, clickedCellInfo.colName);
-                colIndex = clickedCellInfo.colName;
+                rowCol = GoogleSheetsService.findInsertIndex(weaponData.values, event.colName);
+                colIndex = 'מסד';
                 sheetid = 439908422;
+                anotherUpdate = {
+                    sheetId: selectedSheet.id,
+                    rowIndex: event.rowIndex + 1,
+                    colIndex: columnDefs.findIndex(col => col.field === 'סוג_נשק'),
+                    value: ""
+                }
+                handleOldValue(event.rowIndex, 'מסד', "");
+                handleOldValue(event.rowIndex, 'סוג_נשק', "");
             }
+            const update = [
+                {
+                    sheetId: sheetid,
+                    rowIndex: rowCol.row,
+                    colIndex: rowCol.col,
+                    value: event.value
+                },
+                {
+                    sheetId: selectedSheet.id,
+                    rowIndex: event.rowIndex + 1,
+                    colIndex: columnDefs.findIndex(col => col.field === colIndex),
+                    value: ""
+                }];
+            if (anotherUpdate)
+                update.push(anotherUpdate);
+
             const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
-                updates: [
-                    {
-                        sheetId: sheetid,
-                        rowIndex: rowCol.row,
-                        colIndex: rowCol.col,
-                        value: clickedCellInfo.value
-                    },
-                    {
-                        sheetId: selectedSheet.id,
-                        rowIndex: clickedCellInfo.rowIndex + 1,
-                        colIndex: columnDefs.findIndex(col => col.field === colIndex),
-                        value: ""
-                    }],
+                updates: update,
                 appendSheetId: 553027487,
                 appendValues: [[msg, new Date().toString(), userEmail ? userEmail : ""]]
             });
             setShowMessage(true);
             setShowConfirmDialog(false);
             setIsSuccess(response);
-            setMessage(response ? msg : ` בעיה בזיכוי ${clickedCellInfo.colName}`);
+            setMessage(response ? msg : ` בעיה בזיכוי ${event.colName}`);
             refetch()
-            handleOldValue(clickedCellInfo.rowIndex, clickedCellInfo.colName, "");
             if (!response) {
                 isRevertingNameOrComment.current = true;
             }
@@ -251,11 +298,11 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     async function handleSelectOption(option: { rowIndex: number, colIndex: number, value: string }) {
         setShowComboBox(false);
         const userEmail = localStorage.getItem('userEmail');
-        if (!clickedCellInfo) {
-            console.error("clickedCellInfo is null");
+        if (!event) {
+            console.error("event is null");
             return;
         }
-        const msg = `האמרל ${clickedCellInfo.colName} ${option.value} הוחתם בהצלחה לחייל ${clickedCellInfo.row["שם_מלא"]} `;
+        const msg = `האמרל ${event.colName} ${option.value} הוחתם בהצלחה לחייל ${event.row["שם_מלא"]} `;
         const response = await GoogleSheetsService.updateCalls({
             accessToken: accessToken,
             updates: [
@@ -267,8 +314,8 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 },
                 {
                     sheetId: selectedSheet.id,
-                    rowIndex: clickedCellInfo.rowIndex + 1,
-                    colIndex: columnDefs.findIndex(c => c.field === clickedCellInfo.colName),
+                    rowIndex: event.rowIndex + 1,
+                    colIndex: columnDefs.findIndex(c => c.field === event.colName),
                     value: option.value
                 }],
             appendSheetId: 553027487,
@@ -276,10 +323,10 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         });
         setShowMessage(true);
         setIsSuccess(response);
-        setMessage(response ? msg : ` בעיה בהחתמת האמרל ${clickedCellInfo.colName}`);
+        setMessage(response ? msg : ` בעיה בהחתמת האמרל ${event.colName}`);
         refetch()
         if (response) {
-            handleOldValue(clickedCellInfo.rowIndex, clickedCellInfo.colName, option.value);
+            handleOldValue(event.rowIndex, event.colName, option.value);
         }
     }
 
@@ -435,10 +482,10 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     }}
                 />
 
-                {showConfirmDialog && clickedCellInfo && (
+                {showConfirmDialog && event && (
                     <div>
                         <ConfirmDialog
-                            clickedCellInfo={clickedCellInfo}
+                            clickedCellInfo={event}
                             onConfirm={() => handleConfirmOpticCredit()}
                             onCancel={() => setShowConfirmDialog(false)}
                         />

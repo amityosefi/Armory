@@ -179,9 +179,12 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
 
     // Function to handle crediting soldier
     const handleCreditSoldier = async (selectedRow: any) => {
+
+        const colOpticIndex = columnDefs.findIndex(val => val.field === 'הערות');
         try {
+
             const headersStartingFromG = columnDefs
-                .slice(5) // Column G is at index 6 (A=0, B=1, etc.)
+                .slice(colOpticIndex + 1)
                 .map(column => column.field || column.headerName);
             const response = await creditSoldier(
                 accessToken,
