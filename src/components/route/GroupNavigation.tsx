@@ -1,156 +1,36 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import type { SheetGroup } from '../../types';
-import GoogleSheetsService from '../../services/GoogleSheetsService';
 
 interface GroupNavigationProps {
   sheetGroups: SheetGroup[];
   accessToken: string;
 }
 
-interface SearchResult {
-  sheetName: string;
-  cellValue: string;
-}
-
 const GroupNavigation: React.FC<GroupNavigationProps> = ({ sheetGroups, accessToken }) => {
   const location = useLocation();
-  const navigate = useNavigate();
   const currentPath = location.pathname;
 
-  const [searchText, setSearchText] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [showModal, setShowModal] = useState(false);
-
-  const modalRef = useRef<HTMLDivElement>(null);
-
-  const handleSearch = async () => {
-    if (!searchText.trim()) return;
-    try {
-      const res = await GoogleSheetsService.searchAcrossAllSheets({
-        searchValue: searchText.trim(),
-        accessToken,
-      });
-      setResults(res);
-      setShowModal(true);
-    } catch (error) {
-      console.error("Error searching sheets:", error);
-    }
-  };
-
-  // Close modal when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        setShowModal(false);
-      }
-    };
-    if (showModal) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showModal]);
-
   return (
-      <div className="flex flex-col items-center gap-3">
-        {/* Group Tabs */}
-        <div className="flex flex-wrap justify-center gap-2">
-          {sheetGroups.map((group, index) => {
-            const isActive = currentPath.includes(`/group/${index}`);
-            return (
-                <Link
-                    key={index}
-                    to={`/group/${index}`}
-                    className={`px-4 py-1 rounded-lg transition-colors font-medium ${
-                        isActive ? 'bg-blue-700 text-white shadow-md' : 'bg-blue-500 text-white hover:bg-blue-600'
-                    }`}
-                >
-                  {group.name}
-                </Link>
-            );
-          })}
-        </div>
-
-        {/* Search Bar */}
-        <div className="flex gap-2 mt-2">
-          <input
-              type="text"
-              placeholder="חפש בכל הגיליונות"
-              className="px-3 py-1 border rounded-md text-right"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-          />
-          <button
-              onClick={handleSearch}
-              className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-          >
-            חפש
-          </button>
-        </div>
-
-        {/* Search Results Modal */}
-        {showModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-              <div
-                  ref={modalRef}
-                  className="bg-white p-6 rounded-xl border border-gray-30 shadow-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto relative"
-              >
-                {/* X button inside white box */}
-                <button
-                    onClick={() => setShowModal(false)}
-                    className="absolute top-2 left-2 text-red-500 font-bold text-2xl hover:text-red-700"
-                >
-                  ×
-                </button>
-
-                <h2 className="text-xl font-semibold mb-4 text-right">
-                  תוצאות חיפוש עבור: "{searchText}"
-                </h2>
-
-                {results.length === 0 ? (
-                    <p className="text-center text-gray-500">לא נמצאו תוצאות.</p>
-                ) : (
-                    <table className="min-w-[300px] table-fixed text-right border border-collapse">
-                      <thead className="bg-gray-100">
-                      <tr>
-                        <th className="border px-3 py-2 w-1/3">גיליון</th>
-                        <th className="border px-3 py-2 w-2/3">ערך</th>
-                      </tr>
-                      </thead>
-                      <tbody>
-                      {results.map((result, idx) => {
-                        const groupIndex = sheetGroups.findIndex(group => group.name === result.sheetName);
-                        return (
-                            <tr key={idx} className="border-t">
-                              <td className="border px-2 py-1 break-words w-1/3">
-                                {groupIndex !== -1 ? (
-                                    <button
-                                        className="text-blue-600 hover:underline"
-                                        onClick={() => {
-                                          navigate(`/group/${groupIndex}`);
-                                          setShowModal(false);
-                                        }}
-                                    >
-                                      {result.sheetName}
-                                    </button>
-                                ) : (
-                                    result.sheetName
-                                )}
-                              </td>
-                              <td className="border px-2 py-1 break-words w-2/3">{result.cellValue}</td>
-                            </tr>
-                        );
-                      })}
-                      </tbody>
-                    </table>
-
-                )}
-              </div>
-            </div>
-        )}
+    <>
+      {/* Group Tabs */}
+      <div className="flex flex-wrap justify-center gap-2">
+        {sheetGroups.map((group, index) => {
+          const isActive = currentPath.includes(`/group/${index}`);
+          return (
+            <Link
+              key={index}
+              to={`/group/${index}`}
+              className={`px-4 py-1 rounded-lg transition-colors font-medium ${
+                isActive ? 'bg-blue-700 text-white shadow-md' : 'bg-blue-500 text-white hover:bg-blue-600'
+              }`}
+            >
+              {group.name}
+            </Link>
+          );
+        })}
       </div>
+    </>
   );
 };
 

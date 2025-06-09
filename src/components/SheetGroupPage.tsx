@@ -51,6 +51,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
     const [isSuccess, setIsSuccess] = useState(false);
     const [message, setMessage] = useState('');
     const [showDialog, setShowDialog] = useState(false);
+    const [isCreditingInProgress, setIsCreditingInProgress] = useState(false);
 
     useEffect(() => {
         if (sheetQueryData && !isLoading) {
@@ -121,6 +122,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
 
     const handleCreditSoldier = async (row: any) => {
         try {
+            setIsCreditingInProgress(true);
             const colOpticIndex = columnDefs.findIndex(col => col.field === 'הערות');
             const headers = columnDefs.slice(colOpticIndex + 1).map(col => col.field || col.headerName);
             const response = await creditSoldier(accessToken, sheetGroups, row, headers, selectedSheet.range);
@@ -130,15 +132,29 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
             refetch();
         } catch (error) {
             console.error('Error crediting soldier:', error);
+            setShowMessage(true);
+            setIsSuccess(false);
+            setMessage('שגיאה בזיכוי החייל');
+        } finally {
+            setIsCreditingInProgress(false);
         }
     };
 
     const creditButton = selectedRow && groupIndex === 0 && (
-        <button className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm" onClick={() => handleCreditSoldier(selectedRow)}>
-            זיכוי חייל
+        <button 
+            className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm" 
+            onClick={() => handleCreditSoldier(selectedRow)}
+            disabled={isCreditingInProgress}
+        >
+            {isCreditingInProgress ? (
+                <span className="flex items-center">
+                    מעבד...
+                    <span className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                </span>
+            ) : 'זיכוי חייל'}
         </button>
     );
-
+    
     const downloadedData = selectedRow && groupIndex === 0 && (
         <button className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm" onClick={() => downloadData(selectedRow)}>
             הורדת דף החתמה לחייל

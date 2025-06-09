@@ -37,23 +37,22 @@ export const creditSoldier = async (
       (header: string) => header === weaponType
     );
     
-    if (weaponColumnIndex === -1) {
+    if (weaponColumnIndex !== -1) {
+      // Add request to update armory inventory only if we found the weapon column
+      batchRequests.push({
+        appendCells: {
+          sheetId: armoryInventorySheet.id,
+          rows: [{
+            values: Array(weaponColumnIndex).fill({ userEnteredValue: { stringValue: '' } }).concat([
+              { userEnteredValue: { stringValue: serial } }
+            ])
+          }],
+          fields: 'userEnteredValue'
+        }
+      });
+    } else {
       console.log(`לא נמצא עמודה עבור סוג הנשק: ${weaponType}`);
-      return false;
     }
-
-    // Add request to update armory inventory
-    batchRequests.push({
-      appendCells: {
-        sheetId: armoryInventorySheet.id,
-        rows: [{
-          values: Array(weaponColumnIndex).fill({ userEnteredValue: { stringValue: '' } }).concat([
-            { userEnteredValue: { stringValue: serial } }
-          ])
-        }],
-        fields: 'userEnteredValue'
-      }
-    });
     
     // PART 2: Handle optical inventory sheet
     // Get data from the optical inventory sheet

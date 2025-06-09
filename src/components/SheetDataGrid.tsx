@@ -106,7 +106,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         return {
             ...col,
             editable: ['הערות', 'שם_מלא'].includes(col.field),
-            pinned: col.field === 'שם_מלא' ? 'right' : undefined, // 👈 Pin only 'שם_מלא'
+            pinned: col.field === 'שם_מלא' && !(window.innerWidth <= 768) ? 'right' : undefined, // Only pin on non-mobile devices
             filterParams: {
                 filterOptions: ['contains'],
                 suppressAndOrCondition: true,
@@ -445,7 +445,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     enableRtl={true}
                     defaultColDef={{
                         flex: 1,
-                        minWidth: 200,
+                        minWidth: 150,
                         resizable: true
                     }}
                     rowSelection="single"
