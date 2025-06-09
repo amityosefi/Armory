@@ -30,9 +30,6 @@ interface AssignWeaponProps {
     setSelectedSerialInfo: (
         info: { value: string; rowIndex: number; colIndex: number } | null
     ) => void;
-    selectedOptic: {
-        label: any; rowIndex: number; colIndex: number
-    } | null;
     setSelectedOptic: React.Dispatch<
         React.SetStateAction<
             {
@@ -53,7 +50,6 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                                                        onConfirm,
                                                        onCancel,
                                                        setSelectedSerialInfo,
-                                                       selectedOptic,
                                                        setSelectedOptic,
                                                        setShowDialog,
                                                        setAssignSoldier,

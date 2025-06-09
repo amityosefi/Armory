@@ -104,7 +104,7 @@ function App() {
               <h1 className="text-2xl font-bold text-gray-800">נשקיה 8101</h1>
               
               {/* Group Navigation in the center */}
-              <GroupNavigation sheetGroups={sheetGroups} />
+              <GroupNavigation sheetGroups={sheetGroups} accessToken={user.access_token}/>
               
               {/* Sign out button on the right */}
               <button

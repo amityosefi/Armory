@@ -10,7 +10,7 @@ export const creditSoldier = async (
   selectedRow: any,
   headersStartingFromG: string[],
   sheetName: string
-): Promise<void> => {
+): Promise<boolean> => {
   // Find both required sheets in the sheet groups
   const sheets = sheetGroups.flatMap(group => 
     group.sheets.map(sheet => ({ sheet, group }))
@@ -18,14 +18,6 @@ export const creditSoldier = async (
   
   const armoryInventorySheet = sheets.find(item => item.sheet.name === 'מלאי נשקיה')?.sheet;
   const opticalInventorySheet = sheets.find(item => item.sheet.name === 'מלאי אופטיקה')?.sheet;
-
-  if (!armoryInventorySheet) {
-    throw new Error('לא נמצא גליון מלאי נשקיה');
-  }
-  
-  if (!opticalInventorySheet) {
-    throw new Error('לא נמצא גליון מלאי אופטיקה');
-  }
 
   try {
     // Collect all requests for batch update
@@ -35,14 +27,6 @@ export const creditSoldier = async (
     // Get data from the armory inventory sheet
     const encodedArmoryRange = encodeURIComponent(armoryInventorySheet.range);
     const armoryResult = await GoogleSheetsService.fetchSheetData(accessToken, encodedArmoryRange);
-    
-    if (armoryResult.error) {
-      throw new Error(`Google Sheets API error: ${armoryResult.error.message}`);
-    }
-
-    if (!armoryResult.values) {
-      throw new Error('No data found in armory inventory sheet');
-    }
 
     const weaponType = selectedRow['סוג_נשק'];
     const serial = selectedRow['מסד'];
@@ -54,11 +38,10 @@ export const creditSoldier = async (
     );
     
     if (weaponColumnIndex === -1) {
-      throw new Error(`לא נמצא עמודה עבור סוג הנשק: ${weaponType}`);
+      console.log(`לא נמצא עמודה עבור סוג הנשק: ${weaponType}`);
+      return false;
     }
-    
-    // Determine the next row to insert data
-    
+
     // Add request to update armory inventory
     batchRequests.push({
       appendCells: {
@@ -78,11 +61,13 @@ export const creditSoldier = async (
     const opticalResult = await GoogleSheetsService.fetchSheetData(accessToken, encodedOpticalRange);
     
     if (opticalResult.error) {
-      throw new Error(`Google Sheets API error: ${opticalResult.error.message}`);
+      console.log(`Google Sheets API error: ${opticalResult.error.message}`);
+      return false;
     }
     
     if (!opticalResult.values) {
-      throw new Error('No data found in optical inventory sheet');
+      console.log('No data found in optical inventory sheet');
+      return false;
     }
     
     // Determine the next row to insert data
@@ -127,7 +112,8 @@ export const creditSoldier = async (
       // Find the sheet ID for the current sheet
       const sheetInfo = sheets.find(item => item.sheet.range === sheetName);
       if (!sheetInfo || !sheetInfo.sheet.id) {
-        throw new Error(`Could not find sheet ID for: ${sheetName}`);
+        console.log(`Could not find sheet ID for: ${sheetName}`);
+        return false;
       }
       
       const sheetId = sheetInfo.sheet.id;
@@ -153,13 +139,15 @@ export const creditSoldier = async (
     );
     
     if (!batchUpdateSuccess) {
-      throw new Error('Failed to complete batch update operations');
+      console.log('Failed to complete batch update operations');
+      return false;
     }
     
     console.log('Successfully credited soldier with batch update');
 
   } catch (error) {
-    console.error('Error crediting soldier:', error);
-    throw error;
+    console.log('Error crediting soldier:', error);
+    return false;
   }
+  return true;
 };

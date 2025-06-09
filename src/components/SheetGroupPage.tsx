@@ -129,8 +129,9 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
 
 
     async function handleConfirmNewSoldier() {
-        console.log(formValues);
         const msg = `החייל ${formValues.fullName} הוחתם על נשק ${formValues.weaponName} עם כוונת ${formValues.intentionName} ומספר סידורי ${formValues.serialNumber}`;
+        const userEmail = localStorage.getItem('userEmail');
+
         let optic = formValues.intentionName;
         const update = [];
         update.push({
@@ -149,13 +150,13 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             });
         }
 
-            const response = await GoogleSheetsService.updateCalls({
+        const response = await GoogleSheetsService.updateCalls({
             accessToken: accessToken,
             updates: update,
             appendSheetId: 553027487,
-            appendValues: [[msg, new Date().toString()]],
+            appendValues: [[msg, new Date().toString(), userEmail ? userEmail : ""]],
             secondAppendSheetId: selectedSheet.id,
-            secondAppendValues: [[formValues.fullName, formValues.personalNumber.toString(), formValues.phone.toString(), formValues.signature ,formValues.weaponName, optic, formValues.serialNumber]]
+            secondAppendValues: [[formValues.fullName, formValues.personalNumber.toString(), formValues.phone.toString(), formValues.signature, new Date(), formValues.weaponName, optic, formValues.serialNumber]]
 
         });
         setShowMessage(true);
@@ -182,7 +183,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             const headersStartingFromG = columnDefs
                 .slice(5) // Column G is at index 6 (A=0, B=1, etc.)
                 .map(column => column.field || column.headerName);
-            await creditSoldier(
+            const response = await creditSoldier(
                 accessToken,
                 sheetGroups,
                 selectedRow,
@@ -190,8 +191,9 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                 selectedSheet.range
             );
 
-            // Show success message
-            alert(`חייל זוכה בהצלחה! נוסף`);
+            setShowMessage(true);
+            setIsSuccess(response);
+            setMessage(response ? 'החייל זוכה בהצלחה!' : `בעיה בזיכוי החייל`);
 
             // Refresh current sheet data
             refetch();
@@ -258,7 +260,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                             setAssignSoldier(false);
                         }}
                         setSelectedSerialInfo={setSelectedSerialInfo}
-                        setSelectedOptic={setSelectedOptic}
                         selectedOptic={null}
                         setShowDialog={setShowDialog}
                         setAssignSoldier={setAssignSoldier}

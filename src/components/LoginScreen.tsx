@@ -8,15 +8,32 @@ interface LoginScreenProps {
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const login = useGoogleLogin({
-    onSuccess: (codeResponse: TokenResponse) => {
-      // Save the token response to localStorage
+    onSuccess: async (codeResponse: TokenResponse) => {
       localStorage.setItem('googleAuthToken', JSON.stringify(codeResponse));
-      onLoginSuccess(codeResponse);
+
+      try {
+        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: {
+            Authorization: `Bearer ${codeResponse.access_token}`,
+          },
+        });
+
+        const userInfo = await res.json();
+        console.log('User Info:', userInfo); // includes email, name, picture, etc.
+
+        // Optional: save user info to state or localStorage
+        localStorage.setItem('userEmail', userInfo.email);
+
+        onLoginSuccess(codeResponse);
+      } catch (err) {
+        console.error('Failed to fetch user info', err);
+      }
     },
+
     onError: (error) => {
       console.log('Login Failed:', error);
     },
-    scope: 'https://www.googleapis.com/auth/spreadsheets'
+    scope: 'openid email profile https://www.googleapis.com/auth/spreadsheets'
   });
 
   return (

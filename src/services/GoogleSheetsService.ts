@@ -1,4 +1,5 @@
 import { DEFAULT_SPREADSHEET_ID } from "../constants";
+import { sheetGroups } from "../constants";
 
 class GoogleSheetsService {
     static async fetchSheetData(accessToken: string, range: string) {
@@ -79,6 +80,62 @@ class GoogleSheetsService {
 
         return {columnDefs, rowData};
     }
+
+    static async searchAcrossAllSheets({
+                                           searchValue,
+                                           accessToken,
+                                       }: {
+        searchValue: string;
+        accessToken: string;
+    }) {
+        const matches: {
+            sheetName: string;
+            cellValue: string;
+        }[] = [];
+
+        const sheetTitles = sheetGroups.flatMap((group) =>
+            group.sheets.map((sheet) => sheet.range)
+        );
+
+        const rangesParam = sheetTitles.map((title) => `ranges=${encodeURIComponent(title)}`).join("&");
+
+        const response = await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}/values:batchGet?${rangesParam}`,
+            {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+            }
+        );
+
+        const data = await response.json();
+
+        if (data.valueRanges && Array.isArray(data.valueRanges)) {
+            for (const valueRange of data.valueRanges) {
+                const sheetName = valueRange.range.split("!")[0]; // Extract sheet name from "SheetName!A1:Z"
+                const rows = valueRange.values || [];
+
+                rows.forEach((row: string[]) => {
+                    row.forEach((cellValue: string) => {
+                        if (
+                            typeof cellValue === "string" &&
+                            cellValue.toLowerCase().includes(searchValue.toLowerCase())
+                        ) {
+                            matches.push({
+                                sheetName,
+                                cellValue,
+                            });
+                        }
+                    });
+                });
+            }
+        }
+
+        return matches;
+    }
+
 
     static async updateCalls({
                                  accessToken,
