@@ -38,14 +38,19 @@ export const creditSoldier = async (
     );
     
     if (weaponColumnIndex !== -1) {
-      // Add request to update armory inventory only if we found the weapon column
+      // Find the right position to insert the data
+      const insertPosition = GoogleSheetsService.findInsertIndex(armoryResult.values, weaponType);
+      
+      // Add request to update armory inventory at the specific position
       batchRequests.push({
-        appendCells: {
-          sheetId: armoryInventorySheet.id,
+        updateCells: {
+          start: {
+            sheetId: armoryInventorySheet.id,
+            rowIndex: insertPosition.row,
+            columnIndex: insertPosition.col
+          },
           rows: [{
-            values: Array(weaponColumnIndex).fill({ userEnteredValue: { stringValue: '' } }).concat([
-              { userEnteredValue: { stringValue: serial } }
-            ])
+            values: [{ userEnteredValue: { stringValue: serial } }]
           }],
           fields: 'userEnteredValue'
         }
@@ -69,42 +74,66 @@ export const creditSoldier = async (
       return false;
     }
     
-    // Determine the next row to insert data
+    // Extract the header row for optical inventory
+    const opticalHeaderRow = opticalResult.values[0] || [];
     
     // Check the 'כוונת' field value
     const sightType = selectedRow?.['כוונת'];
     
-    // Prepare optical inventory update row
-    const opticalHeaderRow = opticalResult.values[0] || [];
-    
-    // Create a complete row for the optics sheet
-    const opticsRow = Array(opticalHeaderRow.length).fill({ userEnteredValue: { stringValue: '' } });
-    
-    // Set M5 or מפרו in the appropriate column
-    if (sightType === 'M5') {
-      opticsRow[2] = { userEnteredValue: { stringValue: '1' } }; // Column C (index 2)
-    } else if (sightType === 'מפרו') {
-      opticsRow[0] = { userEnteredValue: { stringValue: '1' } }; // Column A (index 0)
+    // If sight type exists, add it to the optical inventory with proper insertion
+    if (sightType && sightType.trim() !== '') {
+      // Find the column index for the sight type
+      const sightTypeColumnIndex = opticalHeaderRow.findIndex((header: string) => header === sightType);
+      
+      if (sightTypeColumnIndex !== -1) {
+        // Find the appropriate position to insert the sight data
+        const insertPosition = GoogleSheetsService.findInsertIndex(opticalResult.values, sightType);
+        
+        // Add request to update optical inventory at the specific position
+        batchRequests.push({
+          updateCells: {
+            start: {
+              sheetId: opticalInventorySheet.id,
+              rowIndex: insertPosition.row,
+              columnIndex: insertPosition.col
+            },
+            rows: [{
+              values: [{ userEnteredValue: { stringValue: '1' } }]
+            }],
+            fields: 'userEnteredValue'
+          }
+        });
+      }
     }
     
     // Update each column from headersStartingFromG in the appropriate position
     for (const header of headersStartingFromG) {
       const value = selectedRow?.[header] || '';
-      const columnIndex = opticalHeaderRow.findIndex((h:string) => h === header);
-      
-      if (columnIndex !== -1) {
-        opticsRow[columnIndex] = { userEnteredValue: { stringValue: value } };
+      // Only proceed if there's a value to insert
+      if (value && value.trim() !== '') {
+        const columnIndex = opticalHeaderRow.findIndex((h: string) => h === header);
+        
+        if (columnIndex !== -1) {
+          // Find the appropriate position to insert this specific header's data
+          const insertPosition = GoogleSheetsService.findInsertIndex(opticalResult.values, header);
+          
+          // Add request to update optical inventory for this header
+          batchRequests.push({
+            updateCells: {
+              start: {
+                sheetId: opticalInventorySheet.id,
+                rowIndex: insertPosition.row,
+                columnIndex: insertPosition.col
+              },
+              rows: [{
+                values: [{ userEnteredValue: { stringValue: value } }]
+              }],
+              fields: 'userEnteredValue'
+            }
+          });
+        }
       }
     }
-    
-    // Add request to update optical inventory
-    batchRequests.push({
-      appendCells: {
-        sheetId: opticalInventorySheet.id,
-        rows: [{ values: opticsRow }],
-        fields: 'userEnteredValue'
-      }
-    });
     
     // PART 3: Remove the soldier from the soldier sheet
     if (selectedRow.rowIndex !== -1) {
