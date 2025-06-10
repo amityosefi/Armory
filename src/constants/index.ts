@@ -7,7 +7,6 @@ export interface SheetGroup {
     id: number; // Google Sheets ID for the sheet
   }>;
 }
-
 // Sheet group configurations
 export const sheetGroups: SheetGroup[] = [
   {

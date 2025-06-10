@@ -10,8 +10,10 @@ import StatusMessageProps from './feedbackFromBackendOrUser/StatusMessageProps.t
 import AssignWeapon from './AssignWeapon.tsx';
 import AcceptSoldier from './feedbackFromBackendOrUser/AcceptSoldierWeapon.tsx';
 import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import googleSheetsService from "../services/GoogleSheetsService";
 
-// import NotoSansHebrew from '../fonts/NotoSansHebrew-normal';
+import '../fonts/NotoSansHebrew-normal';
 
 interface SheetGroupPageProps {
     accessToken: string;
@@ -45,6 +47,9 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
         { processData: false, enabled: !!accessToken && !!encodedRange }
     );
 
+    const doc = new jsPDF();
+    doc.setFont('NotoSansHebrew'); // use your font
+
     const [columnDefs, setColumnDefs] = useState<any[]>([]);
     const [sheetData, setSheetData] = useState<any[]>([]);
     const [showMessage, setShowMessage] = useState(false);
@@ -77,7 +82,11 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
     };
 
     const handleConfirmNewSoldier = async () => {
-        const msg = `החייל ${formValues.fullName} הוחתם על נשק ${formValues.weaponName} עם כוונת ${formValues.intentionName} ומספר סידורי ${formValues.serialNumber}`;
+        let msg = '';
+        if (formValues.intentionName)
+            msg = `החייל ${formValues.fullName} הוחתם על נשק ${formValues.weaponName} עם כוונת ${formValues.intentionName} מסד ${formValues.serialNumber}`;
+        else
+            msg = `החייל ${formValues.fullName} הוחתם על נשק ${formValues.weaponName} בלי כוונת מסד ${formValues.serialNumber} `;
         const userEmail = localStorage.getItem('userEmail');
         let optic = formValues.intentionName;
         const update = [
@@ -92,9 +101,9 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
             accessToken,
             updates: update,
             appendSheetId: 553027487,
-            appendValues: [[msg, new Date().toString(), userEmail || '']],
+            appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail || '']],
             secondAppendSheetId: selectedSheet.id,
-            secondAppendValues: [[formValues.fullName, formValues.personalNumber.toString(), formValues.phone.toString(), formValues.signature, new Date(), formValues.weaponName, optic, formValues.serialNumber]]
+            secondAppendValues: [[formValues.fullName, formValues.personalNumber.toString(), formValues.phone.toString(), formValues.signature, new Date().toLocaleString('he-IL'), formValues.weaponName, optic, formValues.serialNumber]]
         });
 
         setShowMessage(true);
@@ -106,29 +115,162 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
         refetch();
     };
 
-    const downloadData = (row: Record<string, string>) => {
+
+// Helper to reverse only Hebrew words, not numbers or English
+    const mirrorHebrewSmart = (str: string) => {
+        return str
+            .split(/\s+/)
+            .map(word =>
+                /[\u0590-\u05FF]/.test(word) ? word.split('').reverse().join('') : word
+            )
+            .reverse() // Reverse word order too
+            .join(' ');
+    };
+
+    const downloadData = (row: any) => {
         const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 10;
+        let y = 10;
+
+        doc.addFont('NotoSansHebrew-normal.ttf', 'NotoSansHebrew', 'normal');
+        doc.setFont('NotoSansHebrew');
         doc.setFontSize(12);
-        doc.text(`פרטי משתמש - ${row['שם_מלא'] || 'ללא שם'}`, 10, 10);
-        let y = 20;
-        Object.entries(row).forEach(([key, value]) => {
-            if (value && key !== 'rowIndex') {
-                doc.text(`${key.replace(/_/g, ' ')}: ${value}`, 10, y);
-                y += 8;
-            }
+
+        // Title in the center
+        doc.setFontSize(18);
+        doc.text(mirrorHebrewSmart('טופס חיתמת חייל גדוד 8101.'), pageWidth / 2, y, { align: 'center' });
+        y += 10;
+
+        // Right-up: date and time
+        const dateStr = new Date().toLocaleString('he-IL').split(' ');
+        doc.setFontSize(10);
+        doc.text(mirrorHebrewSmart(`שם מלא: ${row['שם_מלא'] || ''}`), pageWidth - margin, y, { align: 'right' });
+        doc.text(mirrorHebrewSmart('תאריך נוכחי: '), margin, y, { align: 'left' });
+
+        y+= 10;
+        doc.text(mirrorHebrewSmart(`מספר אישי: ${row['מספר_אישי'] || ''}`), pageWidth - margin, y, { align: 'right' });
+        doc.text(dateStr[1] + ' ' +  dateStr[0], margin, y, { align: 'left' });
+
+        y += 10;
+        doc.text(mirrorHebrewSmart('תאריך חתימה: '), margin, y, { align: 'left' });
+
+        y += 10;
+        doc.text(mirrorHebrewSmart(row['זמן_חתימה']), margin, y, { align: 'left' });
+
+            // Section: פלוגה + פלאפון
+        y += 15;
+        autoTable(doc, {
+            startY: y,
+            body: [[mirrorHebrewSmart('פלוגה'), mirrorHebrewSmart('פלאפון')],
+            [mirrorHebrewSmart(selectedSheet.name), mirrorHebrewSmart(row['פלאפון'] || '')]],
+            styles: { font: 'NotoSansHebrew', halign: 'right' },
+            margin: { left: margin, right: margin },
         });
-        doc.save(`${row['שם_מלא']}_${row['מספר_אישי'] || 'נתונים'}.pdf`);
+
+        // Dot notes
+        y = doc.lastAutoTable.finalY + 15;
+        const notes = [
+            'הנני מצהיר/ה כי ביצעתי מטווח יום + לילה בסוג הנשק הנ״ל שעליו אני חותם.',
+            'הנני בקיא בהפעלתו ובהוראות הבטיחות בנושא אחזקת הנשק כולל שימוש במק פורק.',
+            'הנשק יוחזר לנשקייה נקי ומשומן - ואחת לחודש יבצע בדיקת נשק.',
+            'החייל/ת ביצע/ה בוחן לנשק אישי ובוחן למק פורק.',
+            'הנשק ינופק באישור השלישות.',
+        ];
+
+        doc.setFontSize(12);
+        notes.forEach((line, i) => {
+            doc.text(`${mirrorHebrewSmart(line)} •`, pageWidth - margin, y + i * 8, { align: 'right' });
+        });
+
+        // Table with user info
+        y += notes.length * 8 + 15;
+        autoTable(doc, {
+            startY: y,
+            body: [[
+                mirrorHebrewSmart('שם מלא'),
+                mirrorHebrewSmart('מספר אישי'),
+                mirrorHebrewSmart('פלוגה')
+            ],
+            [
+                mirrorHebrewSmart(row['שם_מלא'] || ''),
+                mirrorHebrewSmart(row['מספר_אישי'] || ''),
+                mirrorHebrewSmart(selectedSheet.name)
+            ]],
+            styles: {
+                font: 'NotoSansHebrew',
+                halign: 'right',
+            },
+            headStyles: {
+                halign: 'right',
+            },
+            margin: { left: margin, right: margin },
+        });
+
+
+        // Signature label
+        y = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(12);
+        doc.text(mirrorHebrewSmart('חתימת החייל'), pageWidth / 2, y, { align: 'center' });
+
+        // Add signature image if available
+        // y += 5;
+        if (row['חתימה']) {
+            try {
+                doc.addImage(row['חתימה'], 'PNG', pageWidth / 2 - 40, y, 80, 50); // Bigger and centered
+            } catch (e) {
+                console.error('Error adding signature:', e);
+            }
+        }
+
+        // Table of all nonempty values (excluding keys we already used)
+        y += 40;
+        const kvPairs = Object.entries(row)
+            .filter(([key, val]) =>
+                val &&
+                !['חתימה', 'rowIndex', 'מספר_אישי', 'שם_מלא', 'פלאפון', 'זמן_חתימה'].includes(key)
+            )
+            .map(([val, key]) => [
+                mirrorHebrewSmart(val),
+                mirrorHebrewSmart(key.replace(/_/g, ' '))
+            ]);
+
+        autoTable(doc, {
+            startY: y,
+            body:  [...[[mirrorHebrewSmart('מסד'), mirrorHebrewSmart('אמצעי')]], ...kvPairs],
+            styles: { font: 'NotoSansHebrew', halign: 'right' },
+            margin: { left: margin, right: margin },
+        });
+
+        // Save PDF
+        const filename = `${row['שם_מלא'] || 'משתמש'}_${row['מספר_אישי'] || 'טופס'}.pdf`;
+        doc.save(filename);
     };
 
     const handleCreditSoldier = async (row: any) => {
+
+        let msg = '';
         try {
+
+            msg = Object.entries(row)
+                .filter(([_, value]) => value !== '')
+                .map(([key, value]) => {
+                    if (key !== 'rowIndex' && key !== 'חתימה') {
+                        if (key === 'שם_מלא') {
+                            return `החייל: ${value} זיכה `;
+                        }
+                        return `${key}: ${value}`;
+                    }
+                })
+                .join(', ');
+
             setIsCreditingInProgress(true);
             const colOpticIndex = columnDefs.findIndex(col => col.field === 'הערות');
             const headers = columnDefs.slice(colOpticIndex + 1).map(col => col.field || col.headerName);
             const response = await creditSoldier(accessToken, sheetGroups, row, headers, selectedSheet.range);
             setShowMessage(true);
             setIsSuccess(response);
-            setMessage(response ? 'החייל זוכה בהצלחה!' : 'בעיה בזיכוי החייל');
+            setMessage(response ? msg : 'בעיה בזיכוי החייל');
             refetch();
         } catch (error) {
             console.error('Error crediting soldier:', error);
@@ -137,6 +279,12 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
             setMessage('שגיאה בזיכוי החייל');
         } finally {
             setIsCreditingInProgress(false);
+            await googleSheetsService.updateCalls({
+                accessToken: accessToken,
+                updates: [],
+                appendSheetId: 553027487,
+                appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']]
+            })
         }
     };
 
@@ -157,7 +305,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
     
     const downloadedData = selectedRow && groupIndex === 0 && (
         <button className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm" onClick={() => downloadData(selectedRow)}>
-            הורדת דף החתמה לחייל
+            דף החתמה להורדה
         </button>
     );
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 import type { TokenResponse } from '@react-oauth/google';
+import GoogleSheetsService from "../services/GoogleSheetsService";
 
 interface LoginScreenProps {
   onLoginSuccess: (response: TokenResponse) => void;
@@ -20,6 +21,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
         const userInfo = await res.json();
         console.log('User Info:', userInfo); // includes email, name, picture, etc.
+        GoogleSheetsService.hasShownAuthAlert = true;
 
         // Optional: save user info to state or localStorage
         localStorage.setItem('userEmail', userInfo.email);

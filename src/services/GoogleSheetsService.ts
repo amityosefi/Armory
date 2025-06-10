@@ -1,7 +1,9 @@
-import { DEFAULT_SPREADSHEET_ID } from "../constants";
+import {DEFAULT_SPREADSHEET_ID} from "../constants";
 import { sheetGroups } from "../constants";
 
 class GoogleSheetsService {
+    static hasShownAuthAlert = false;
+
     static async fetchSheetData(accessToken: string, range: string) {
         try {
             const response = await fetch(
@@ -14,18 +16,20 @@ class GoogleSheetsService {
             );
 
             if (!response.ok) {
-                if (response.status === 401) {
+                if (response.status === 401 && !GoogleSheetsService.hasShownAuthAlert) {
                     alert("רענן את הדף לצורך התחברות נוספת");
                 }
                 throw new Error('Failed to fetch data');
             }
-
+            GoogleSheetsService.hasShownAuthAlert = false;
             return await response.json();
         } catch (error) {
             console.error('Error fetching sheet data:', error);
             throw error;
         }
     }
+
+
 
     static async appendSheetData(accessToken: string, range: string, values: any[][]) {
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED`
@@ -151,7 +155,7 @@ class GoogleSheetsService {
             rowIndex: number;
             colIndex: number;
             value: string;
-        }[];
+        }[] | any;
         appendSheetId: number;
         appendValues: string[][];
         secondAppendSheetId?: number;
@@ -232,7 +236,7 @@ class GoogleSheetsService {
 
         if (!res.ok) {
             if (res.status === 401) {
-                alert("רענן את הדף לצורך התחברות נוספת");
+                alert("רענן את הדף לצורך התחברות נוספת ובצע את הפעולה שנית");
             }
             const error = await res.json();
             console.log(`Failed to update/append: ${JSON.stringify(error)}`)
@@ -371,10 +375,6 @@ class GoogleSheetsService {
 
         return result;
     }
-
-
-
-
 }
 
 export default GoogleSheetsService;

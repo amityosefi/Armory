@@ -282,7 +282,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 accessToken: accessToken,
                 updates: update,
                 appendSheetId: 553027487,
-                appendValues: [[msg, new Date().toString(), userEmail ? userEmail : ""]]
+                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
             });
             setShowMessage(true);
             setShowConfirmDialog(false);
@@ -319,7 +319,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     value: option.value
                 }],
             appendSheetId: 553027487,
-            appendValues: [[msg, new Date().toString(), userEmail ? userEmail : ""]]
+            appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
         });
         setShowMessage(true);
         setIsSuccess(response);
@@ -347,7 +347,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     value: event.newValue ?? ""
                 }],
                 appendSheetId: 553027487,
-                appendValues: [["חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field + ': ' + event.newValue, new Date().toString(), userEmail ? userEmail : ""]]
+                appendValues: [["חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field + ': ' + event.newValue, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
             });
 
 
