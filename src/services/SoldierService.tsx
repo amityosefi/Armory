@@ -9,7 +9,7 @@ export const creditSoldier = async (
   sheetGroups: SheetGroup[],
   selectedRow: any,
   headersStartingFromG: string[],
-  sheetName: string
+  sheetName: string,
 ): Promise<boolean> => {
   // Find both required sheets in the sheet groups
   const sheets = sheetGroups.flatMap(group => 
