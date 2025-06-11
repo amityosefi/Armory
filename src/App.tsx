@@ -110,7 +110,7 @@ function App() {
 
                 {/* Group Navigation */}
                 <div>
-                  <GroupNavigation sheetGroups={sheetGroups} accessToken={user.access_token} />
+                  <GroupNavigation sheetGroups={sheetGroups} />
                 </div>
               </div>
 

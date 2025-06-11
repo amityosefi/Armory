@@ -1,11 +1,11 @@
 import React, {  useRef, useState, useEffect } from 'react';
 import {AgGridReact} from 'ag-grid-react';
 import GoogleSheetsService from "../services/GoogleSheetsService";
-import ConfirmDialog from "./feedbackFromBackendOrUser/DialogCheckForRemoval.tsx";
-import StatusMessageProps from "./feedbackFromBackendOrUser/StatusMessageProps.tsx";
+import ConfirmDialog from "./feedbackFromBackendOrUser/DialogCheckForRemoval";
+import StatusMessageProps from "./feedbackFromBackendOrUser/StatusMessageProps";
 import type {GridReadyEvent, GridApi} from 'ag-grid-community';
 import ComboBoxEditor from './ComboBoxEditor';
-import {useGoogleSheetData} from "./hooks/useGoogleSheetData.tsx";
+import {useGoogleSheetData} from "./hooks/useGoogleSheetData";
 
 
 interface SheetDataGridProps {
@@ -29,8 +29,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                                                      }) => {
 
     const {
-        data: sheetQueryData,
-        refetch
+        data: refetch
     } = useGoogleSheetData(
         {
             accessToken,
@@ -134,7 +133,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     } | null>(null);
 
 
-    const [selectedRow, setSelectedRow] = useState<any | null>(null);
     const gridRef = useRef<AgGridReact>(null);
     const isRevertingNameOrComment = useRef(false);
     const [showMessage, setShowMessage] = useState(false);
@@ -462,7 +460,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                         if (event.node && event.node.isSelected()) {
                             const rowData = event.data;
                             rowData['rowIndex'] = event.rowIndex; // Add index to rowData
-                            setSelectedRow(rowData);
                             if (onRowSelected) {
                                 onRowSelected(rowData);
                             }
@@ -472,7 +469,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                             if (gridRef.current) {
                                 const selectedNodes = gridRef.current.api.getSelectedNodes();
                                 if (selectedNodes.length === 0) {
-                                    setSelectedRow(null);
                                     if (onRowSelected) {
                                         onRowSelected(null);
                                     }

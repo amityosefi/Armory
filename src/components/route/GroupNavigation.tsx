@@ -4,10 +4,9 @@ import type { SheetGroup } from '../../types';
 
 interface GroupNavigationProps {
   sheetGroups: SheetGroup[];
-  accessToken: string;
 }
 
-const GroupNavigation: React.FC<GroupNavigationProps> = ({ sheetGroups, accessToken }) => {
+const GroupNavigation: React.FC<GroupNavigationProps> = ({ sheetGroups }) => {
   const location = useLocation();
   const currentPath = location.pathname;
 
