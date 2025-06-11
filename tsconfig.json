@@ -1,12 +1,24 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ],
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
     "declaration.d.ts"
-  ]
+  ],
+  "compilerOptions": {
+    "target": "ES2020", // or "ES2018" or higher
+    "lib": ["DOM", "DOM.Iterable", "ES2020"], // Include DOM + modern JS features
+    "jsx": "react-jsx", // or "react" depending on your setup
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "declarationDir": "./dist",
+    "outDir": "./dist"
+  }
 }

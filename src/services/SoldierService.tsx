@@ -25,6 +25,7 @@ export const creditSoldier = async (
 
     // PART 1: Handle armory inventory sheet
     // Get data from the armory inventory sheet
+    // @ts-ignore
     const encodedArmoryRange = encodeURIComponent(armoryInventorySheet.range);
     const armoryResult = await GoogleSheetsService.fetchSheetData(accessToken, encodedArmoryRange);
 
@@ -40,8 +41,10 @@ export const creditSoldier = async (
     if (weaponColumnIndex !== -1) {
       // Find the right position to insert the data
       const insertPosition = GoogleSheetsService.findInsertIndex(armoryResult.values, weaponType);
-      
+
       // Add request to update armory inventory at the specific position
+      if (armoryInventorySheet && armoryInventorySheet !== undefined) {
+
       batchRequests.push({
         updateCells: {
           start: {
@@ -50,17 +53,19 @@ export const creditSoldier = async (
             columnIndex: insertPosition.col
           },
           rows: [{
-            values: [{ userEnteredValue: { stringValue: serial } }]
+            values: [{userEnteredValue: {stringValue: serial}}]
           }],
           fields: 'userEnteredValue'
         }
       });
+    }
     } else {
       console.log(`לא נמצא עמודה עבור סוג הנשק: ${weaponType}`);
     }
     
     // PART 2: Handle optical inventory sheet
     // Get data from the optical inventory sheet
+    // @ts-ignore
     const encodedOpticalRange = encodeURIComponent(opticalInventorySheet.range);
     const opticalResult = await GoogleSheetsService.fetchSheetData(accessToken, encodedOpticalRange);
     
@@ -88,21 +93,23 @@ export const creditSoldier = async (
       if (sightTypeColumnIndex !== -1) {
         // Find the appropriate position to insert the sight data
         const insertPosition = GoogleSheetsService.findInsertIndex(opticalResult.values, sightType);
-        
+
         // Add request to update optical inventory at the specific position
-        batchRequests.push({
-          updateCells: {
-            start: {
-              sheetId: opticalInventorySheet.id,
-              rowIndex: insertPosition.row,
-              columnIndex: insertPosition.col
-            },
-            rows: [{
-              values: [{ userEnteredValue: { stringValue: '1' } }]
-            }],
-            fields: 'userEnteredValue'
-          }
-        });
+        if (opticalInventorySheet && opticalInventorySheet !== undefined) {
+          batchRequests.push({
+            updateCells: {
+              start: {
+                sheetId: opticalInventorySheet.id,
+                rowIndex: insertPosition.row,
+                columnIndex: insertPosition.col
+              },
+              rows: [{
+                values: [{userEnteredValue: {stringValue: '1'}}]
+              }],
+              fields: 'userEnteredValue'
+            }
+          });
+        }
       }
     }
     
@@ -116,21 +123,23 @@ export const creditSoldier = async (
         if (columnIndex !== -1) {
           // Find the appropriate position to insert this specific header's data
           const insertPosition = GoogleSheetsService.findInsertIndex(opticalResult.values, header);
-          
+
           // Add request to update optical inventory for this header
-          batchRequests.push({
-            updateCells: {
-              start: {
-                sheetId: opticalInventorySheet.id,
-                rowIndex: insertPosition.row,
-                columnIndex: insertPosition.col
-              },
-              rows: [{
-                values: [{ userEnteredValue: { stringValue: value } }]
-              }],
-              fields: 'userEnteredValue'
-            }
-          });
+          if (opticalInventorySheet && opticalInventorySheet !== undefined) {
+            batchRequests.push({
+              updateCells: {
+                start: {
+                  sheetId: opticalInventorySheet.id,
+                  rowIndex: insertPosition.row,
+                  columnIndex: insertPosition.col
+                },
+                rows: [{
+                  values: [{userEnteredValue: {stringValue: value}}]
+                }],
+                fields: 'userEnteredValue'
+              }
+            });
+          }
         }
       }
     }

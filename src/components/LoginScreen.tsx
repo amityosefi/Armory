@@ -1,7 +1,6 @@
 import React from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 import type { TokenResponse } from '@react-oauth/google';
-import GoogleSheetsService from "../services/GoogleSheetsService";
 
 interface LoginScreenProps {
   onLoginSuccess: (response: TokenResponse) => void;

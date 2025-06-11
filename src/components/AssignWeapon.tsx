@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useRef } from "react";
 import SignatureCanvas from "react-signature-canvas";
-import { useGoogleSheetData } from "./hooks/useGoogleSheetData.tsx";
+import { useGoogleSheetData } from "./hooks/useGoogleSheetData";
 import Select from "react-select";
 
 interface AssignWeaponProps {
     accessToken: string;
     formValues: {
         fullName: string;
-        personalNumber: number | string;
-        phone: number | string;
+        personalNumber: number | any;
+        phone: number | any;
         weaponName: string;
         intentionName: string;
         serialNumber: string;
@@ -17,8 +17,8 @@ interface AssignWeaponProps {
     setFormValues: React.Dispatch<
         React.SetStateAction<{
             fullName: string;
-            personalNumber: number | string;
-            phone: number | string;
+            personalNumber: number | any;
+            phone: number | any;
             weaponName: string;
             intentionName: string;
             serialNumber: string;
@@ -181,8 +181,8 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
     const isFormValid = () =>
         formValues.fullName.trim() &&
         formValues.weaponName.trim() &&
-        (formValues.personalNumber !== "" && formValues.personalNumber !== null) &&
-        (formValues.phone !== "" && formValues.phone !== null) &&
+        (formValues.personalNumber !== undefined && formValues.personalNumber !== null) &&
+        (formValues.phone !== undefined && formValues.phone !== null) &&
         formValues.serialNumber.trim() &&
         formValues.signature.trim();
 
@@ -239,7 +239,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                             value={formValues.personalNumber?.toString() || ""}
                             onChange={(e) => {
                                 const value = e.target.value.replace(/\D/g, "");
-                                setFormValues((prev) => ({ ...prev, personalNumber: value }));
+                                setFormValues((prev) => ({ ...prev, personalNumber: Number(value) }));
                             }}
                         />
                     </div>
@@ -256,7 +256,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                             onChange={(e) => {
                                 const value = e.target.value;
                                 if (/^\d*$/.test(value)) {
-                                    setFormValues((prev) => ({ ...prev, phone: value }));
+                                    setFormValues((prev) => ({ ...prev, phone: Number(value) }));
                                 }
                             }}
                         />

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import TabsNavigation from './route/TabsNavigation.tsx';
+import TabsNavigation from './route/TabsNavigation';
 import SheetDataGrid from './SheetDataGrid';
 import GoogleSheetsService from '../services/GoogleSheetsService';
 import { creditSoldier } from '../services/SoldierService';
 import type { SheetGroup } from '../types';
-import { useGoogleSheetData } from './hooks/useGoogleSheetData.tsx';
-import StatusMessageProps from './feedbackFromBackendOrUser/StatusMessageProps.tsx';
-import AssignWeapon from './AssignWeapon.tsx';
-import AcceptSoldier from './feedbackFromBackendOrUser/AcceptSoldierWeapon.tsx';
+import { useGoogleSheetData } from './hooks/useGoogleSheetData';
+import StatusMessageProps from './feedbackFromBackendOrUser/StatusMessageProps';
+import AssignWeapon from './AssignWeapon';
+import AcceptSoldier from './feedbackFromBackendOrUser/AcceptSoldierWeapon';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import googleSheetsService from "../services/GoogleSheetsService";
@@ -29,8 +29,8 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
     const [assignSoldier, setAssignSoldier] = useState(false);
     const [formValues, setFormValues] = useState({
         fullName: '',
-        personalNumber: 0,
-        phone: 0,
+        personalNumber: null,
+        phone: null,
         weaponName: '',
         intentionName: '',
         serialNumber: '',
@@ -82,7 +82,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
     };
 
     const handleConfirmNewSoldier = async () => {
-        let msg = '';
+        let msg;
         if (formValues.intentionName)
             msg = `החייל ${formValues.fullName} הוחתם על נשק ${formValues.weaponName} עם כוונת ${formValues.intentionName} מסד ${formValues.serialNumber}`;
         else
@@ -97,13 +97,14 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
             update.push({ sheetId: 813181890, rowIndex: selectedOptic?.rowIndex, colIndex: selectedOptic?.colIndex, value: '' });
         }
 
+        // @ts-ignore
         const response = await GoogleSheetsService.updateCalls({
             accessToken,
             updates: update,
             appendSheetId: 553027487,
             appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail || '']],
             secondAppendSheetId: selectedSheet.id,
-            secondAppendValues: [[formValues.fullName, formValues.personalNumber.toString(), formValues.phone.toString(), formValues.signature, new Date().toLocaleString('he-IL'), formValues.weaponName, optic, formValues.serialNumber]]
+            secondAppendValues: [[formValues.fullName, String(formValues.personalNumber), String(formValues.phone), formValues.signature, new Date().toLocaleString('he-IL'), formValues.weaponName, optic, formValues.serialNumber]]
         });
 
         setShowMessage(true);
@@ -111,7 +112,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
         setShowDialog(false);
         setIsSuccess(response);
         setMessage(response ? msg : 'בעיה בהחתמת חייל');
-        setFormValues({ fullName: '', personalNumber: 0, phone: 0, weaponName: '', intentionName: '', serialNumber: '', signature: '' });
+        setFormValues({ fullName: '', personalNumber: null, phone: null, weaponName: '', intentionName: '', serialNumber: '', signature: '' });
         refetch();
     };
 
@@ -169,6 +170,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
         });
 
         // Dot notes
+        // @ts-ignore
         y = doc.lastAutoTable.finalY + 15;
         const notes = [
             'הנני מצהיר/ה כי ביצעתי מטווח יום + לילה בסוג הנשק הנ״ל שעליו אני חותם.',
@@ -209,6 +211,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
 
 
         // Signature label
+        // @ts-ignore
         y = doc.lastAutoTable.finalY + 10;
         doc.setFontSize(12);
         doc.text(mirrorHebrewSmart('חתימת החייל'), pageWidth / 2, y, { align: 'center' });
@@ -225,6 +228,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
 
         // Table of all nonempty values (excluding keys we already used)
         y += 40;
+
         const kvPairs = Object.entries(row)
             .filter(([key, val]) =>
                 val &&
@@ -232,7 +236,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
             )
             .map(([val, key]) => [
                 mirrorHebrewSmart(val),
-                mirrorHebrewSmart(key.replace(/_/g, ' '))
+                mirrorHebrewSmart(String(key).replace(/_/g, ' '))
             ]);
 
         autoTable(doc, {
@@ -328,7 +332,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
                     setFormValues={setFormValues}
                     onConfirm={handleConfirmNewSoldier}
                     onCancel={() => {
-                        setFormValues({ fullName: '', personalNumber: 0, phone: 0, weaponName: '', intentionName: '', serialNumber: '', signature: '' });
+                        setFormValues({ fullName: '', personalNumber: null, phone: null, weaponName: '', intentionName: '', serialNumber: '', signature: '' });
                         setAssignSoldier(false);
                     }}
                     setSelectedSerialInfo={setSelectedSerialInfo}
@@ -342,7 +346,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
                 <AcceptSoldier
                     onConfirm={handleConfirmNewSoldier}
                     onCancel={() => {
-                        setFormValues({ fullName: '', personalNumber: 0, phone: 0, weaponName: '', intentionName: '', serialNumber: '', signature: '' });
+                        setFormValues({ fullName: '', personalNumber: null, phone: null, weaponName: '', intentionName: '', serialNumber: '', signature: '' });
                         setAssignSoldier(false);
                     }}
                 />
