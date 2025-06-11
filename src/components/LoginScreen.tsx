@@ -21,7 +21,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
         const userInfo = await res.json();
         console.log('User Info:', userInfo); // includes email, name, picture, etc.
-        GoogleSheetsService.hasShownAuthAlert = true;
 
         // Optional: save user info to state or localStorage
         localStorage.setItem('userEmail', userInfo.email);

@@ -96,13 +96,11 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
 
     const modalRef = useRef<HTMLDivElement>(null);
     const sigPadRef = useRef<SignatureCanvas>(null);
-    const [signatureData, setSignatureData] = useState<string | null>(null);
 
 
     const saveSignature = () => {
         if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
             const dataURL = sigPadRef.current.getCanvas().toDataURL("image/png");
-            setSignatureData(dataURL);
             setFormValues((prev) => ({ ...prev, signature: dataURL }));
         }
     };
@@ -170,14 +168,13 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                 rowIndex: i + 1,
                 colIndex,
             }))
-            .filter((s) => s.value?.trim());
+            .filter((s: { value: string; }) => s.value?.trim());
 
         setSerialNumbers(serials);
     }, [formValues.weaponName, weaponData]);
 
     const clearSignature = () => {
         sigPadRef.current?.clear();
-        setSignatureData(null);
         setFormValues((prev) => ({ ...prev, signature: "" }));
     };
 
