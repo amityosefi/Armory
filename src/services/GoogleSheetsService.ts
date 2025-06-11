@@ -2,7 +2,6 @@ import {DEFAULT_SPREADSHEET_ID} from "../constants";
 import { sheetGroups } from "../constants";
 
 class GoogleSheetsService {
-    static hasShownAuthAlert = false;
 
     static async fetchSheetData(accessToken: string, range: string) {
         try {
@@ -16,12 +15,8 @@ class GoogleSheetsService {
             );
 
             if (!response.ok) {
-                if (response.status === 401 && !GoogleSheetsService.hasShownAuthAlert) {
-                    alert("רענן את הדף לצורך התחברות נוספת");
-                }
                 throw new Error('Failed to fetch data');
             }
-            GoogleSheetsService.hasShownAuthAlert = false;
             return await response.json();
         } catch (error) {
             console.error('Error fetching sheet data:', error);
