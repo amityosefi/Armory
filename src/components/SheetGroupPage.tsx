@@ -84,9 +84,9 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
     const handleConfirmNewSoldier = async () => {
         let msg;
         if (formValues.intentionName)
-            msg = `החייל ${formValues.fullName} הוחתם על נשק ${formValues.weaponName} עם כוונת ${formValues.intentionName} מסד ${formValues.serialNumber}`;
+            msg = `החייל ${formValues.fullName} הוחתם על נשק ${formValues.weaponName} עם כוונת ${formValues.intentionName} מסד ${formValues.serialNumber} ${selectedSheet.name}`;
         else
-            msg = `החייל ${formValues.fullName} הוחתם על נשק ${formValues.weaponName} בלי כוונת מסד ${formValues.serialNumber} `;
+            msg = `החייל ${formValues.fullName} הוחתם על נשק ${formValues.weaponName} בלי כוונת מסד ${formValues.serialNumber} ${selectedSheet.name}מ`;
         const userEmail = localStorage.getItem('userEmail');
         let optic = formValues.intentionName;
         const update = [
@@ -140,7 +140,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
 
         // Title in the center
         doc.setFontSize(18);
-        doc.text(mirrorHebrewSmart('טופס חיתמת חייל גדוד 8101.'), pageWidth / 2, y, { align: 'center' });
+        doc.text(mirrorHebrewSmart('טופס חיתמת חייל גדוד 1018.'), pageWidth / 2, y, { align: 'center' });
         y += 10;
 
         // Right-up: date and time
@@ -274,7 +274,14 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
             const response = await creditSoldier(accessToken, sheetGroups, row, headers, selectedSheet.range);
             setShowMessage(true);
             setIsSuccess(response);
-            setMessage(response ? msg : 'בעיה בזיכוי החייל');
+            setMessage(response ? msg + " " + selectedSheet.name : 'בעיה בזיכוי החייל');
+            if (response)
+                await googleSheetsService.updateCalls({
+                    accessToken: accessToken,
+                    updates: [],
+                    appendSheetId: 553027487,
+                    appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']]
+                });
             refetch();
         } catch (error) {
             console.error('Error crediting soldier:', error);
@@ -283,12 +290,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({ accessToken, sheetGroup
             setMessage('שגיאה בזיכוי החייל');
         } finally {
             setIsCreditingInProgress(false);
-            await googleSheetsService.updateCalls({
-                accessToken: accessToken,
-                updates: [],
-                appendSheetId: 553027487,
-                appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']]
-            })
         }
     };
 

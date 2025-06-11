@@ -25,7 +25,7 @@ function App() {
       );
 
       // If we get a 401 or 403 error, token is invalid or lacks permission
-      if (result.error) {
+      if (!result) {
         console.error('Token validation failed:', result.error.message);
         return false;
       }
