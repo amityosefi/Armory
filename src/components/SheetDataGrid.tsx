@@ -71,11 +71,22 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
 
     const [dropdownOptions, setDropdownOptions] = useState<{ rowIndex: number, colIndex: number, value: string }[]>([]);
-    const [showComboBox, setShowComboBox] = useState(false);
-    const [searchText, setSearchText] = useState('');
+    const [dropdownOptionsWeapon, setDropdownOptionsWeapon] = useState<{ value: string }[]>([]);
+
     const [filteredOptions, setFilteredOptions] = useState<typeof dropdownOptions>([]);
+    const [filteredOptionsWeapon, setFilteredOptionsWeapon] = useState<typeof dropdownOptionsWeapon>([]);
+
+    const [showComboBoxWeapon, setShowComboBoxWeapon] = useState(false);
+    const [showComboBox, setShowComboBox] = useState(false);
+
+    const [searchText, setSearchText] = useState('');
+    const [searchTextWeapon, setSearchTextWeapon] = useState('');
 
     const [highlightedIndex, setHighlightedIndex] = useState(0);
+    const [highlightedIndexWeapon, setHighlightedIndexWeapon] = useState(0);
+
+    const [selectedWeapon, setSelectedWeapon] = useState('');
+
     const comboBoxRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -159,14 +170,14 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         let col = event.colDef.field;
         let uniqueOptions;
         if (event.colDef.field === 'כוונת') {
-            const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(opticsData.values, "מפרולייט");
-            const valuesForAssign2 = GoogleSheetsService.findValuesUnderHeader(opticsData.values, 'M5');
+            const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(opticsData.values, 'מאפרו');
             console.log("valuesForAssign", valuesForAssign);
-            console.log("valuesForAssign2", valuesForAssign2);
+            console.log("opticsData.values", opticsData.values);
+            const valuesForAssign2 = GoogleSheetsService.findValuesUnderHeader(opticsData.values, 'M5');
             const uniqueOptionsMap = new Map<string, { rowIndex: number, colIndex: number, value: string }>();
             valuesForAssign.forEach(item => {
-                if (!uniqueOptionsMap.has('מפרולייט ' + item.value)) {
-                    uniqueOptionsMap.set('מפרולייט ' + item.value, {...item, value: 'מפרולייט ' + item.value});
+                if (!uniqueOptionsMap.has('מאפרו ' + item.value)) {
+                    uniqueOptionsMap.set('מאפרו ' + item.value, {...item, value: 'מאפרו ' + item.value});
                 }
             });
             valuesForAssign2.forEach(item => {
@@ -176,7 +187,19 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             });
             uniqueOptions = Array.from(uniqueOptionsMap.values());
             // feel here the missing input
-        } else {
+        } else if (col === 'מסד') {
+            const headers = weaponData.values[0];
+            const headerOptions = headers.map((h: any) => ({ value: h }));
+            setDropdownOptionsWeapon(headerOptions)
+            setFilteredOptionsWeapon(headerOptions);
+            setShowComboBoxWeapon(true);
+            setHighlightedIndexWeapon(0);
+            setSearchTextWeapon('');
+            // @ts-ignore
+            return;
+
+        }
+        else {
             // @ts-ignore
             const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(opticsData.values, col);
             const uniqueOptionsMap = new Map<string, { rowIndex: number, colIndex: number, value: string }>();
@@ -198,12 +221,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     // @ts-ignore
     async function onClickedOptic(event: any) : Promise<boolean> {
 
-        // let col = event.colDef.field;
-        // let value = event.value;
-        // if (col === 'כוונת' && value) {
-        //     col = value;
-        //     value = "1";
-        // }
         if (!isGroupSheet() || ['סוג_נשק', 'שם_מלא', 'הערות'].includes(event.colDef.field))
             { // @ts-ignore
                 return;
@@ -236,15 +253,15 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     async function handleConfirmOpticCredit() {
         if (event) {
             const userEmail = localStorage.getItem('userEmail');
-            const msg = event.row["שם_מלא"] + " זיכה " + event.colName + " " + event.value;
+            const msg = event.row["שם_מלא"] + " זיכה " + event.colName + " " + event.value + " " + selectedSheet.range;
             const columnFields = columnDefs.map(col => col.field);
                 let rowCol;
                 let colIndex;
                 let sheetid;
                 let anotherUpdate;
-            if (columnFields.includes(event.colName) || event.colName === "M5" || event.colName === "מאפרולייט") {
+            if (columnFields.includes(event.colName) || event.colName === "M5" || event.colName === "מאפרו") {
                 rowCol = GoogleSheetsService.findInsertIndex(opticsData.values, event.colName);
-                colIndex = event.colName === "M5" || event.colName === "מאפרולייט" ? 'כוונת' : event.colName;
+                colIndex = event.colName === "M5" || event.colName === "מאפרו" ? 'כוונת' : event.colName;
                 sheetid = 813181890;
                 handleOldValue(event.rowIndex, colIndex, "");
             } else {
@@ -286,7 +303,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             setShowConfirmDialog(false);
             setIsSuccess(response);
             setMessage(response ? msg : ` בעיה בזיכוי ${event.colName}`);
-            refetch()
+            // refetch()
             if (!response) {
                 isRevertingNameOrComment.current = true;
             }
@@ -300,32 +317,89 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             console.error("event is null");
             return;
         }
-        const msg = `האמרל ${event.colName} ${option.value} הוחתם בהצלחה לחייל ${event.row["שם_מלא"]} `;
+        const updates = [];
+        if (option.value === 'M5 1' || option.value === 'מאפרו 1') {
+            option.value = option.value.split(' ')[0]; // Remove the "1" suffix
+
+        }
+        const firstUpdate = {
+            sheetId: selectedSheet.id,
+            rowIndex: event.rowIndex + 1,
+            colIndex: columnDefs.findIndex(c => c.field === event.colName),
+            value: option.value
+        };
+        updates.push(firstUpdate)
+
+        let msg;
+        let anotherUpdate;
+        if (event.colName == 'מסד') {
+            msg = `הנשק ${event.colName} ${option.value} הוחתם בהצלחה לחייל ${event.row["שם_מלא"]} ` + " " + selectedSheet.name;
+            anotherUpdate = {
+                sheetId: 439908422,
+                rowIndex: option.rowIndex,
+                colIndex: option.colIndex,
+                value: ""
+            };
+            updates.push({
+                sheetId: selectedSheet.id,
+                rowIndex: event.rowIndex + 1,
+                colIndex: columnDefs.findIndex(c => c.field === "סוג_נשק"),
+                value: selectedWeapon
+            })
+            updates.push({
+                sheetId: selectedSheet.id,
+                rowIndex: event.rowIndex + 1,
+                colIndex: columnDefs.findIndex(c => c.field === "זמן_חתימה"),
+                value: new Date().toLocaleString('he-IL')
+            })
+
+        }
+        else {
+            msg = `האמרל ${event.colName} ${option.value} הוחתם בהצלחה לחייל ${event.row["שם_מלא"]} ` + " " + selectedSheet.name;
+            anotherUpdate = {
+                sheetId: 813181890,
+                    rowIndex: option.rowIndex,
+                colIndex: option.colIndex,
+                value: ""
+            };
+
+        }
+        updates.push(anotherUpdate);
         const response = await GoogleSheetsService.updateCalls({
             accessToken: accessToken,
-            updates: [
-                {
-                    sheetId: 813181890,
-                    rowIndex: option.rowIndex,
-                    colIndex: option.colIndex,
-                    value: ""
-                },
-                {
-                    sheetId: selectedSheet.id,
-                    rowIndex: event.rowIndex + 1,
-                    colIndex: columnDefs.findIndex(c => c.field === event.colName),
-                    value: option.value
-                }],
+            updates: updates,
             appendSheetId: 553027487,
             appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
         });
         setShowMessage(true);
         setIsSuccess(response);
         setMessage(response ? msg : ` בעיה בהחתמת האמרל ${event.colName}`);
-        refetch()
+        // refetch()
         if (response) {
             handleOldValue(event.rowIndex, event.colName, option.value);
+            if (event.colName == 'מסד')
+                handleOldValue(event.rowIndex, 'סוג_נשק', selectedWeapon);
         }
+    }
+
+    async function handleSelectWeaponOption(option: { value: string }) {
+        setSelectedWeapon(option.value)
+        setShowComboBoxWeapon(false);
+        const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(weaponData.values, option.value);
+        const uniqueOptionsMap = new Map<string, { rowIndex: number, colIndex: number, value: string }>();
+        valuesForAssign.forEach(item => {
+            if (!uniqueOptionsMap.has(item.value)) {
+                uniqueOptionsMap.set(item.value, item);
+            }
+        });
+        let uniqueOptions = Array.from(uniqueOptionsMap.values());
+        setDropdownOptions(uniqueOptions);
+        setFilteredOptions(uniqueOptions);
+        setShowComboBox(true);
+        setHighlightedIndex(0); // reset highlighted index
+        setSearchText('');
+
+
     }
 
     async function changeNameOrComment(event: any) {
@@ -334,6 +408,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             isRevertingNameOrComment.current = false;
             return;
         }
+        const msg = "חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field + ': ' + event.newValue;
         if (event.colDef.field === 'הערות' || event.colDef.field === 'שם_מלא') {
             const userEmail = localStorage.getItem('userEmail');
             const response = await GoogleSheetsService.updateCalls({
@@ -345,18 +420,18 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     value: event.newValue ?? ""
                 }],
                 appendSheetId: 553027487,
-                appendValues: [["חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field + ': ' + event.newValue, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
+                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
             });
 
 
             setShowMessage(true);
             setIsSuccess(response);
-            setMessage(response ? `${event.colDef.field} עודכן בהצלחה ` : ` בעיה בעדכון ${event.colDef.field}`);
+            setMessage(response ? msg : ` בעיה בעדכון ${event.colDef.field}`);
             if (!response) {
                 isRevertingNameOrComment.current = true;
                 event.node.setDataValue(event.column.getId(), event.oldValue);
             }
-            refetch();
+            // refetch();
         }
 
     }
@@ -364,6 +439,61 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     // @ts-ignore
     return (
         <>
+            {showComboBoxWeapon && (
+                <div
+                    ref={comboBoxRef}
+                    className="absolute z-50 bg-white shadow-xl rounded-lg w-72 border border-gray-300 animate-fadeIn backdrop-blur-md"
+                    style={{top: 100, left: 100}} // Optional: make dynamic later
+                    role="listbox"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                        if (e.key === 'ArrowDown') {
+                            setHighlightedIndexWeapon((prev) => Math.min(prev + 1, filteredOptions.length - 1));
+                        } else if (e.key === 'ArrowUp') {
+                            setHighlightedIndexWeapon((prev) => Math.max(prev - 1, 0));
+                        } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+                            // @ts-ignore
+                            handleSelectWeaponOption(filteredOptionsWeapon[highlightedIndexWeapon]);
+                        } else if (e.key === 'Escape') {
+                            setShowComboBoxWeapon(false);
+                        }
+                    }}
+                >
+                    <div className="p-2 border-b border-gray-200">
+                        <input
+                            type="text"
+                            placeholder="🔍 חיפוש..."
+                            className="w-full p-2 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                            value={searchTextWeapon}
+                            onChange={(e) => {
+                                setSearchText(e.target.value);
+                                setHighlightedIndexWeapon(0);
+                            }}
+                            autoFocus
+                        />
+                    </div>
+                    <ul className="max-h-60 overflow-y-auto">
+                        {filteredOptionsWeapon.map((option, idx) => (
+                            <li
+                                key={`${option.value}`}
+                                className={`p-2 px-4 cursor-pointer transition-colors ${
+                                    idx === highlightedIndex
+                                        ? 'bg-blue-600 text-white'
+                                        : 'hover:bg-gray-100'
+                                }`}
+                                onMouseEnter={() => setHighlightedIndexWeapon(idx)}
+                                onClick={() => {
+                                    // @ts-ignore
+                                    handleSelectWeaponOption(option);
+                                }}
+                            >
+                                {option.value}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
             {showComboBox && (
                 <div
                     ref={comboBoxRef}

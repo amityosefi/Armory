@@ -15,12 +15,13 @@ class GoogleSheetsService {
             );
 
             if (!response.ok) {
-                throw new Error('Failed to fetch data');
+                console.log('Failed to fetch data');
+                return false;
             }
             return await response.json();
         } catch (error) {
-            console.error('Error fetching sheet data:', error);
-            throw error;
+            console.log('Error fetching sheet data:', error);
+            return false;
         }
     }
 
@@ -157,88 +158,89 @@ class GoogleSheetsService {
         secondAppendValues?: string[][];
     }) {
 
-        const requests: any[] = [];
-        // Add updateCells requests
-        for (const update of updates) {
-            const sheetId = update.sheetId;
-            if (sheetId === undefined) {
-                throw new Error(`Sheet not found: ${update.sheetId}`);
+        try {
+
+            const requests: any[] = [];
+            // Add updateCells requests
+            for (const update of updates) {
+                const sheetId = update.sheetId;
+                if (sheetId === undefined) {
+                    throw new Error(`Sheet not found: ${update.sheetId}`);
+                }
+
+                requests.push({
+                    updateCells: {
+                        rows: [
+                            {
+                                values: [
+                                    {
+                                        userEnteredValue: {stringValue: update.value},
+                                    },
+                                ],
+                            },
+                        ],
+                        fields: "userEnteredValue",
+                        start: {
+                            sheetId,
+                            rowIndex: update.rowIndex,
+                            columnIndex: update.colIndex,
+                        },
+                    },
+                });
             }
 
             requests.push({
-                updateCells: {
-                    rows: [
-                        {
-                            values: [
-                                {
-                                    userEnteredValue: { stringValue: update.value },
-                                },
-                            ],
-                        },
-                    ],
-                    fields: "userEnteredValue",
-                    start: {
-                        sheetId,
-                        rowIndex: update.rowIndex,
-                        columnIndex: update.colIndex,
-                    },
-                },
-            });
-        }
-
-        // Add appendCells request
-        if (appendSheetId === undefined) {
-            throw new Error(`Sheet not found: ${appendSheetId}`);
-        }
-
-        requests.push({
-            appendCells: {
-                sheetId: appendSheetId,
-                rows: appendValues.map((row) => ({
-                    values: row.map((cell) => ({
-                        userEnteredValue: { stringValue: cell },
-                    })),
-                })),
-                fields: "*",
-            },
-        });
-        // Append to second sheet if provided
-        if (secondAppendSheetId !== undefined && secondAppendValues !== undefined) {
-            requests.push({
                 appendCells: {
-                    sheetId: secondAppendSheetId,
-                    rows: secondAppendValues.map((row) => ({
+                    sheetId: appendSheetId,
+                    rows: appendValues.map((row) => ({
                         values: row.map((cell) => ({
-                            userEnteredValue: { stringValue: cell },
+                            userEnteredValue: {stringValue: cell},
                         })),
                     })),
                     fields: "*",
                 },
             });
-        }
-
-        const res = await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}:batchUpdate`,
-            {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ requests }),
+            // Append to second sheet if provided
+            if (secondAppendSheetId !== undefined && secondAppendValues !== undefined) {
+                requests.push({
+                    appendCells: {
+                        sheetId: secondAppendSheetId,
+                        rows: secondAppendValues.map((row) => ({
+                            values: row.map((cell) => ({
+                                userEnteredValue: {stringValue: cell},
+                            })),
+                        })),
+                        fields: "*",
+                    },
+                });
             }
-        );
 
-        if (!res.ok) {
-            if (res.status === 401) {
-                alert("רענן את הדף לצורך התחברות נוספת ובצע את הפעולה שנית");
+            const res = await fetch(
+                `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}:batchUpdate`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({requests}),
+                }
+            );
+
+            if (!res.ok) {
+                if (res.status === 401) {
+                    alert("רענן את הדף לצורך התחברות נוספת ובצע את הפעולה שנית");
+                }
+                const error = await res.json();
+                console.log(`Failed to update/append: ${JSON.stringify(error)}`)
+                return false;
             }
-            const error = await res.json();
-            console.log(`Failed to update/append: ${JSON.stringify(error)}`)
+            console.log("✅ Batch update and append successful");
+            return true;
+        }catch (error) {
+            console.log("Error during batch update/append:", error);
             return false;
         }
-        console.log("✅ Batch update and append successful");
-        return true;
     }
 
 

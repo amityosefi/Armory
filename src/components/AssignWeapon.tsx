@@ -123,7 +123,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
 
         try {
             const headers = opticsData.values[0];
-            const validTypes = ["M5", "מפרולייט"];
+            const validTypes = ["M5", "מאפרו"];
             const newOpticOptions: { label: string; rowIndex: number; colIndex: number }[] = [];
 
             validTypes.forEach((type) => {
@@ -273,7 +273,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                             }
                         >
                             <option value="">בחר סוג נשק</option>
-                            {weaponData?.values?.[0]?.slice(1).map((w: string, i: number) => (
+                            {weaponData?.values?.[0]?.map((w: string, i: number) => (
                                 <option key={i} value={w}>
                                     {w}
                                 </option>
