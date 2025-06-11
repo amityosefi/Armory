@@ -253,7 +253,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     async function handleConfirmOpticCredit() {
         if (event) {
             const userEmail = localStorage.getItem('userEmail');
-            const msg = event.row["שם_מלא"] + " זיכה " + event.colName + " " + event.value + " " + selectedSheet.range;
+            const msg = event.row["שם_מלא"] + " זיכה " + event.colName + " " + event.value + " " + selectedSheet.name;
             const columnFields = columnDefs.map(col => col.field);
                 let rowCol;
                 let colIndex;
