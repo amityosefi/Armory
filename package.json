@@ -2,7 +2,7 @@
   "name": "armory",
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://amityosefi.github.io/armory",
+  "homepage": "https://amityosefi.github.io/armory/",
   "scripts": {
     "dev": "vite",
     "clean": "rm -rf dist",
