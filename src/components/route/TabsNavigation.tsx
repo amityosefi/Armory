@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import {useState} from 'react';
 import useIsMobile from '../../hooks/useIsMobile';
 
 interface TabsNavigationProps {
@@ -8,16 +8,22 @@ interface TabsNavigationProps {
     creditButton?: React.ReactNode;
     downloadedData?: React.ReactNode;
     assignWeaponButton?: React.ReactNode;
+    addWeaponOrOptic?: React.ReactNode;
+    addNewSerialWeaponOrOptic?: React.ReactNode;
+
 }
 
 function TabsNavigation({
-    sheets,
-    activeTabIndex,
-    onTabChange,
-    creditButton,
-    downloadedData,
-    assignWeaponButton
-}: TabsNavigationProps) {
+                            sheets,
+                            activeTabIndex,
+                            onTabChange,
+                            creditButton,
+                            downloadedData,
+                            assignWeaponButton,
+                            addWeaponOrOptic,
+                            addNewSerialWeaponOrOptic
+
+                        }: TabsNavigationProps) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const isMobile = useIsMobile();
 
@@ -34,8 +40,11 @@ function TabsNavigation({
                         className="flex items-center justify-between w-full p-4 text-left border-b-2 border-transparent text-blue-600"
                     >
                         <span>{sheets[activeTabIndex]?.name || "Select Tab"}</span>
-                        <svg className={`w-5 h-5 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                        <svg className={`w-5 h-5 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
+                             fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd"
+                                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                  clipRule="evenodd"/>
                         </svg>
                     </button>
 
@@ -78,6 +87,8 @@ function TabsNavigation({
                 {downloadedData}
                 {creditButton}
                 {assignWeaponButton}
+                {addWeaponOrOptic}
+                {addNewSerialWeaponOrOptic}
             </div>
         </div>
     );
