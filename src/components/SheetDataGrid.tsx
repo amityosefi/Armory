@@ -86,6 +86,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     const [highlightedIndexWeapon, setHighlightedIndexWeapon] = useState(0);
 
     const [selectedWeapon, setSelectedWeapon] = useState('');
+    const countColumns = ['עדי', 'כוונת'];
 
     const comboBoxRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
