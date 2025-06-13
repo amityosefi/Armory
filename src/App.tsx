@@ -99,7 +99,7 @@ function App() {
         <LoginScreen onLoginSuccess={handleLoginSuccess} />
       ) : (
         // Logged in - Show the router with page navigation
-        <Router>
+        <Router basename="/armory">
           <div className="w-full max-w-full px-4">
             {/* Header with title, navigation and sign out button */}
             <div className="flex justify-between items-center mb-4">
