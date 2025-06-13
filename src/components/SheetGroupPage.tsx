@@ -121,7 +121,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             },
         ];
         if (optic !== '') {
-            optic = formValues.intentionName.startsWith('M5') ? 'M5' : 'מאפרו';
+            optic = formValues.intentionName.startsWith('M5') ? 'M5' : 'מפרו';
             update.push({
                 sheetId: 813181890,
                 rowIndex: selectedOptic?.rowIndex,
