@@ -1,12 +1,65 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 import type { TokenResponse } from '@react-oauth/google';
+import { Navigate } from 'react-router-dom';
+import GoogleSheetsService from '../services/GoogleSheetsService';
 
 interface LoginScreenProps {
   onLoginSuccess: (response: TokenResponse) => void;
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkSavedToken = async () => {
+      const savedToken = localStorage.getItem('googleAuthToken');
+
+      if (savedToken) {
+        try {
+          const parsedToken = JSON.parse(savedToken) as TokenResponse;
+          const isValid = await validateAccessToken(parsedToken.access_token);
+
+          if (isValid) {
+            onLoginSuccess(parsedToken);
+            setIsAuthenticated(true);
+          } else {
+            localStorage.removeItem('googleAuthToken');
+          }
+        } catch (error) {
+          console.error('Error parsing saved token:', error);
+          localStorage.removeItem('googleAuthToken');
+        }
+      }
+      setIsLoading(false);
+    };
+
+    checkSavedToken();
+  }, [onLoginSuccess]);
+
+  // Function to validate access token by making a test request
+  const validateAccessToken = async (token: string): Promise<boolean> => {
+    try {
+      // Try to fetch a minimal amount of data from the spreadsheet to verify access
+      const result = await GoogleSheetsService.fetchSheetData(
+        token,
+        'א!A1:A1'  // Just request a single cell
+      );
+
+      // If we get a 401 or 403 error, token is invalid or lacks permission
+      if (!result) {
+        console.error('Token validation failed');
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error validating token:', error);
+      return false;
+    }
+  }
+
   const login = useGoogleLogin({
     onSuccess: async (codeResponse: TokenResponse) => {
       localStorage.setItem('googleAuthToken', JSON.stringify(codeResponse));
@@ -25,6 +78,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         localStorage.setItem('userEmail', userInfo.email);
 
         onLoginSuccess(codeResponse);
+        setIsAuthenticated(true);
       } catch (err) {
         console.error('Failed to fetch user info', err);
       }
@@ -35,6 +89,19 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     },
     scope: 'openid email profile https://www.googleapis.com/auth/spreadsheets'
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center w-full h-[75vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+        <p className="text-gray-700">מאמת חיבור...</p>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/group/0" replace />;
+  }
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-[75vh] max-w-2xl">
