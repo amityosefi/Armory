@@ -213,8 +213,11 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div ref={modalRef} className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start sm:items-center justify-center z-50 overflow-y-auto">
+            <div 
+                ref={modalRef} 
+                className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md my-4 sm:my-0 max-h-[90vh] overflow-y-auto"
+            >
                 <h2 className="text-lg font-bold mb-4 text-right">החתמת חייל</h2>
                 <div className="space-y-4">
                     {/* Full Name */}
