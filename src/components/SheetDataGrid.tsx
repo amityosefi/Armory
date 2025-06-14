@@ -260,7 +260,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 let sheetid;
                 let anotherUpdate;
             if (columnFields.includes(event.colName) || event.colName === "M5" || event.colName === "מפרו") {
-                rowCol = GoogleSheetsService.findInsertIndex(opticsData.values, event.colName);
+                rowCol = GoogleSheetsService.findInsertIndex(opticsData.values, event.colName.replace("_", ' '));
                 colIndex = event.colName === "M5" || event.colName === "מפרו" ? 'כוונת' : event.colName;
                 sheetid = 813181890;
                 handleOldValue(event.rowIndex, colIndex, "");
