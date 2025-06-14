@@ -125,7 +125,7 @@ function App() {
                   onClick={handleSignOut}
                   className="bg-red-500 hover:bg-red-600 text-white font-medium py-1 px-3 rounded text-sm transition-colors"
                 >
-                  Sign Out
+                  התנתק
                 </button>
               </div>
             </div>
