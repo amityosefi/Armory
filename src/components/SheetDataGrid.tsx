@@ -117,7 +117,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         return {
             ...col,
             editable: ['הערות', 'שם_מלא'].includes(col.field),
-            pinned: col.field === 'שם_מלא' && !(window.innerWidth <= 768) ? 'right' : undefined, // Only pin on non-mobile devices
+            pinned: col.field === 'שם_מלא' ? 'right' : undefined, // 👈 Pin only 'שם_מלא'
             filterParams: {
                 filterOptions: ['contains'],
                 suppressAndOrCondition: true,
