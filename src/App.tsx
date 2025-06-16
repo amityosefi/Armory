@@ -54,7 +54,6 @@ function App() {
             setUser(parsedToken);
           } else {
             // Token is invalid or lacks permissions
-            console.log('Saved token is invalid or lacks permissions');
             localStorage.removeItem('googleAuthToken');
             setUser(null);
           }

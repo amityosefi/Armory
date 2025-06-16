@@ -16,6 +16,9 @@ import googleSheetsService from "../services/GoogleSheetsService";
 import '../fonts/NotoSansHebrew-normal';
 import PromptNewWeaponOrOptic from "./PromptNewWeaponOrOptic";
 import PromptNewSerialWeaponOrOptic from "./PromptNewSerialWeaponOrOptic";
+import AddOpticToGroupColumn from "./AddOpticToGroupColumn";
+import {useNavigate} from "react-router-dom";
+import SoldierCardPage from "./SoldierCardPage";
 
 interface SheetGroupPageProps {
     accessToken: string;
@@ -29,6 +32,8 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     const [activeTabIndex, setActiveTabIndex] = useState(0);
     const [selectedRow, setSelectedRow] = useState<any | null>(null);
     const [assignSoldier, setAssignSoldier] = useState(false);
+    const [addOpticColumn, setAddOpticColumn] = useState(false);
+    const [openSoldierCard, setOpenSoldierCard] = useState(false);
     const [formValues, setFormValues] = useState({
         fullName: '',
         personalNumber: null,
@@ -57,9 +62,24 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         {processData: false, enabled: !!accessToken && !!encodedRange}
     );
 
+    const navigate = useNavigate();
     const [newWeaponOrOpticName, setNewWeaponOrOpticName] = useState('');
     const [newSerialWeaponOrOpticName, setNewSerialWeaponOrOpticName] = useState('');
     const [chosenWeaponOrOptic, setChosenWeaponOrOptic] = useState('');
+    const [chosenNewOptic, setChosenNewOptic] = useState('');
+    const {
+        data: opticsData,
+    } = useGoogleSheetData(
+        {
+            accessToken,
+            range: "מלאי אופטיקה"
+        },
+        {
+            // Don't process data here, we'll do it with custom logic below
+            processData: false,
+            enabled: !!accessToken
+        }
+    );
 
     const doc = new jsPDF();
     doc.setFont('NotoSansHebrew'); // use your font
@@ -95,6 +115,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         }
     }, [sheetQueryData, isLoading]);
 
+
     useEffect(() => {
         if (currentGroup.sheets.length > 0) handleTabChange(0);
     }, [currentGroup]);
@@ -106,6 +127,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
 
     const handleConfirmNewSoldier = async () => {
         let msg;
+        setShowDialog(false);
         if (formValues.intentionName)
             msg = `החייל ${formValues.fullName} הוחתם על נשק ${formValues.weaponName} עם כוונת ${formValues.intentionName} מסד ${formValues.serialNumber} ${selectedSheet.name}`;
         else
@@ -142,7 +164,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
 
         setShowMessage(true);
         setAssignSoldier(false);
-        setShowDialog(false);
         setIsSuccess(response);
         setMessage(response ? msg : 'בעיה בהחתמת חייל');
         setFormValues({
@@ -335,13 +356,13 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     };
 
     async function handleNewWeaponOrOptic() {
+        setIsCreditingInProgress(true);
         const updates = [{
             sheetId: selectedSheet.id,
             rowIndex: 0,
             colIndex: sheetQueryData.values[0].length,
             value: newWeaponOrOpticName
         }];
-        console.log('updates', updates);
         const msg = 'ל ' + selectedSheet.range + 'נוסף סוג חדש בשם: ' + newWeaponOrOpticName;
         let response = false;
         const flag = await GoogleSheetsService.executeBatchUpdate(accessToken, [
@@ -372,12 +393,61 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         setIsSuccess(response && response);
         setPromptNewWeaponOrOptic(false);
         setNewWeaponOrOpticName('')
+        setIsCreditingInProgress(false);
         refetch();
 
     }
 
+    async function handleConfirmNewOptic() {
+
+        console.log('Chosen new optic:', chosenNewOptic);
+        console.log('selectedSheet:', selectedSheet.id);
+        console.log('columnDefs.map(row => row.headerName).length:', columnDefs.map(row => row.headerName).length);
+        const msg = 'ל' + selectedSheet.name + ' נוסף אמרל חדש: ' + chosenNewOptic;
+        setIsCreditingInProgress(true);
+        // @ts-ignore
+        let response = false;
+        const flag = await GoogleSheetsService.executeBatchUpdate(accessToken, [
+            {
+                "updateSheetProperties": {
+                    "properties": {
+                        "sheetId": selectedSheet.id,
+                        "gridProperties": {
+                            "columnCount": sheetQueryData.values[0].length + 5
+                        }
+                    },
+                    "fields": "gridProperties.columnCount"
+                }
+            }
+        ])
+        if (flag) {
+            response = await GoogleSheetsService.updateCalls({
+                    accessToken: accessToken,
+                    updates: [{
+
+                        sheetId: selectedSheet.id,
+                        rowIndex: 0,
+                        colIndex: columnDefs.map(row => row.headerName).length,
+                        value: chosenNewOptic
+                    }],
+                    appendSheetId: 553027487,
+                    appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']],
+
+                }
+            );
+        }
+        setChosenNewOptic('');
+        setShowMessage(true);
+        setMessage(response ? msg : 'בעיה בהוספת אמרל לפלוגה');
+        setIsSuccess(response);
+        setAddOpticColumn(false);
+        setIsCreditingInProgress(false);
+        refetch();
+    }
+
     async function handleNewSerialWeaponOrOptic() {
         const rowCol = GoogleSheetsService.findInsertIndex(sheetQueryData.values, chosenWeaponOrOptic);
+        setIsCreditingInProgress(true);
 
         const updates = [{
             sheetId: selectedSheet.id,
@@ -385,7 +455,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             colIndex: rowCol.col, // need to change
             value: newSerialWeaponOrOpticName
         }];
-        const msg = 'ל ' + selectedSheet.range + 'נוסף צ חדש: ' + newSerialWeaponOrOpticName + 'תחת' + chosenWeaponOrOptic;
+        const msg = 'ל' + selectedSheet.name + ' נוסף צ חדש: ' + newSerialWeaponOrOpticName + 'תחת' + chosenWeaponOrOptic;
         const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
                 updates: updates,
@@ -400,6 +470,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         setNewSerialWeaponOrOptic(false);
         setChosenWeaponOrOptic('');
         setNewSerialWeaponOrOpticName('');
+        setIsCreditingInProgress(false);
         refetch();
     }
 
@@ -422,35 +493,91 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     const downloadedData = selectedRow && groupIndex === 0 && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
-            onClick={() => downloadData(selectedRow)}>
-            דף החתמה להורדה
+            onClick={() => downloadData(selectedRow)}
+        >
+            {isCreditingInProgress ? (
+                <span className="flex items-center">
+                    מעבד...
+                    <span
+                        className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                </span>
+            ) : 'דף החתמה להורדה'}
         </button>
     );
 
-    const assignWeaponButton = isGroupSheet() && (
+    const addOpticToGroup = isGroupSheet() && !selectedRow && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
-            onClick={() => setAssignSoldier(true)}>
-            החתמת חייל
+            onClick={() => setAddOpticColumn(true)}
+        >
+            {isCreditingInProgress ? (
+                <span className="flex items-center">
+                    מעבד...
+                    <span
+                        className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                </span>
+            ) : 'הוספת אמרל'}
+        </button>
+    );
+
+    const assignWeaponButton = isGroupSheet() && !selectedRow && (
+        <button
+            className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
+            onClick={() => setAssignSoldier(true)}
+        >
+            {isCreditingInProgress ? (
+                <span className="flex items-center">
+                    מעבד...
+                    <span
+                        className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                </span>
+            ) : 'החתמת חייל'}
         </button>
     );
 
     const addWeaponOrOptic = ['מלאי נשקיה', 'מלאי אופטיקה'].includes(selectedSheet.range) && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
-            onClick={() => setPromptNewWeaponOrOptic(true)}>
-            {selectedSheet.range === 'מלאי נשקיה' ? 'הוספת נשק חדש' : 'הוספת אמרל חדש'}
+            onClick={() => setPromptNewWeaponOrOptic(true)}
+        >
+            {isCreditingInProgress ? (
+                <span className="flex items-center">
+                    מעבד...
+                    <span
+                        className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                </span>
+            ) : selectedSheet.range === 'מלאי נשקיה' ? 'הוספת נשק חדש' : 'הוספת אמרל חדש'}
         </button>
     );
 
     const addNewSerialWeaponOrOptic = ['מלאי נשקיה', 'מלאי אופטיקה'].includes(selectedSheet.range) && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
-            onClick={() => setNewSerialWeaponOrOptic(true)}>
-            הוספת מסד חדש
+            onClick={() => setNewSerialWeaponOrOptic(true)}
+        >
+            {isCreditingInProgress ? (
+                <span className="flex items-center">
+                    מעבד...
+                    <span
+                        className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                </span>
+            ) : 'הוספת מסד חדש'}
         </button>
     );
 
+    const showSoldierModal = isGroupSheet() && selectedRow && (
+        <button
+            onClick={() => navigate('/soldier-card', {
+                state: {
+                    row: selectedRow,
+                    sheetName: selectedSheet.name
+                }
+            })}
+            className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
+        >
+            כרטיסיית חייל
+        </button>
+    );
 
     return (
         <div>
@@ -459,8 +586,39 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             <TabsNavigation sheets={currentGroup.sheets} activeTabIndex={activeTabIndex} onTabChange={handleTabChange}
                             creditButton={creditButton} downloadedData={downloadedData}
                             assignWeaponButton={assignWeaponButton} addWeaponOrOptic={addWeaponOrOptic}
-                            addNewSerialWeaponOrOptic={addNewSerialWeaponOrOptic}
+                            addNewSerialWeaponOrOptic={addNewSerialWeaponOrOptic} addOpticToGroup={addOpticToGroup}
+                // showSoldierModal={showSoldierModal}
             />
+            {/*{openSoldierCard && (*/}
+            {/*    <SoldierCardPage*/}
+            {/*        row={selectedRow}*/}
+            {/*        onCancel={() => setOpenSoldierCard(false)}*/}
+            {/*        creditSoldier={async () => {*/}
+            {/*            // handleConfirmAction(soldierRowData);*/}
+            {/*            await handleCreditSoldier(selectedRow);*/}
+            {/*            setOpenSoldierCard(false);*/}
+            {/*        }}*/}
+            {/*        downloadedData={() => {*/}
+            {/*            downloadData(selectedRow);*/}
+            {/*        }}*/}
+            {/*        sheetName={selectedSheet.name}*/}
+            {/*    />*/}
+            {/*)}*/}
+
+
+            {addOpticColumn && (
+                <AddOpticToGroupColumn
+                    headerGroup={columnDefs.map(row => row.headerName)}
+                    opticsHeaders={opticsData.values[0]}
+                    chosenNewOptic={chosenNewOptic}
+                    setChosenNewOptic={setChosenNewOptic}
+                    onClose={() => {
+                        setAddOpticColumn(false);
+                        setChosenNewOptic('');
+                    }}
+                    onConfirm={handleConfirmNewOptic}
+                />
+            )}
 
             {assignSoldier && (
                 <AssignWeapon
@@ -552,9 +710,10 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                     <p className="font-bold">Error:</p>
                     <p>{error instanceof Error ? error.message : 'Failed to fetch sheet data'}</p>
                 </div>
-            ) : sheetData.length > 0 ? (
+            ) : sheetData.length > 0 || isCreditingInProgress ? (
                 <SheetDataGrid accessToken={accessToken} columnDefs={columnDefs} rowData={sheetData}
-                               selectedSheet={selectedSheet} onRowSelected={setSelectedRow}/>
+                               selectedSheet={selectedSheet} onRowSelected={setSelectedRow}
+                               refetch={refetch}/>
             ) : (
                 <div className="bg-white shadow-lg rounded-lg p-6 text-center">
                     <p className="text-gray-700">אין מידע זמין עבור גליון זה.</p>
