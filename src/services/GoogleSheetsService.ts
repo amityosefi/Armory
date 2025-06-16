@@ -1,6 +1,8 @@
 import {DEFAULT_SPREADSHEET_ID} from "../constants";
 import { sheetGroups } from "../constants";
 
+
+
 class GoogleSheetsService {
 
     static async fetchSheetData(accessToken: string, range: string) {
@@ -15,6 +17,10 @@ class GoogleSheetsService {
             );
 
             if (!response.ok) {
+                if (response.status === 401) {
+                    localStorage.removeItem('googleAuthToken');
+                    window.location.href = '/';
+                }
                 console.log('Failed to fetch data');
                 return false;
             }

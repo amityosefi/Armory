@@ -66,19 +66,19 @@ const SoldierCardPage: React.FC = () => {
                 </div>
             )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-                {Object.entries(row)
-                    .filter(([key, val]) => val && !primaryKeys.includes(key) && !excludeKeys.includes(key))
-                    .map(([key, val]) => (
-                        <div
-                            key={key}
-                            className="border rounded p-2 bg-gray-100 flex flex-col"
-                        >
-                            <span className="text-xs text-gray-600">{formatKey(key)}</span>
-                            <span className="font-medium">{val}</span>
-                        </div>
-                    ))}
-            </div>
+            {/*<div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">*/}
+            {/*    {Object.entries(row)*/}
+            {/*        .filter(([key, val]) => val && !primaryKeys.includes(key) && !excludeKeys.includes(key))*/}
+            {/*        .map(([key, val]) => (*/}
+            {/*            <div*/}
+            {/*                key={key}*/}
+            {/*                className="border rounded p-2 bg-gray-100 flex flex-col"*/}
+            {/*            >*/}
+            {/*                <span className="text-xs text-gray-600">{formatKey(key)}</span>*/}
+            {/*                <span className="font-medium">{val}</span>*/}
+            {/*            </div>*/}
+            {/*        ))}*/}
+            {/*</div>*/}
 
             <div className="flex justify-between mt-8">
                 <button
