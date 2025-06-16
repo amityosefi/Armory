@@ -12,7 +12,7 @@ const StatusMessage: React.FC<StatusMessageProps> = ({ isSuccess, message, onClo
 
         const timeout = setTimeout(() => {
             onClose?.();
-        }, 5000);
+        }, 10000);
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
