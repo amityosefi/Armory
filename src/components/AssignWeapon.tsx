@@ -123,7 +123,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
 
         try {
             const headers = opticsData.values[0];
-            const validTypes = ["M5", "מפרו"];
+            const validTypes = ["M5", 'מארס' ,"מפרו"];
             const newOpticOptions: { label: string; rowIndex: number; colIndex: number }[] = [];
 
             validTypes.forEach((type) => {

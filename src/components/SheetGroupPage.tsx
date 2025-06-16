@@ -143,7 +143,9 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             },
         ];
         if (optic !== '') {
-            optic = formValues.intentionName.startsWith('M5') ? 'M5' : 'מפרו';
+            const prefixes = ['M5', 'מפרו', 'מארס'];
+            optic = prefixes.find(prefix => formValues.intentionName.startsWith(prefix)) || '';
+
             update.push({
                 sheetId: 813181890,
                 rowIndex: selectedOptic?.rowIndex,
@@ -446,6 +448,32 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     }
 
     async function handleNewSerialWeaponOrOptic() {
+        let res: { sheetName: string; cellValue: string; }[] = [];
+        // @ts-ignore
+        const isWeaponSight = ['M5', 'מפרו', 'מארס', 'מצפן', 'משקפת'].includes(chosenWeaponOrOptic);
+        if (!isWeaponSight)
+             res = await GoogleSheetsService.searchAcrossAllSheets({
+                searchValue: newSerialWeaponOrOpticName,
+                accessToken,
+            });
+        const excludeSheets = ["'תיעוד'", "'דוח1'", "'טבלת נשקיה'"];
+
+        let count = res.filter(v =>
+            v.cellValue === newSerialWeaponOrOpticName &&
+            !excludeSheets.some(sheet => v.sheetName.includes(sheet))
+        );
+        // @ts-ignore
+        if (count.length > 0 && !isWeaponSight) {
+            setNewSerialWeaponOrOptic(false);
+            setChosenWeaponOrOptic('');
+            setNewSerialWeaponOrOpticName('');
+            setIsCreditingInProgress(false);
+            setShowMessage(true);
+            setMessage('מסד זה כבר קיים');
+            setIsSuccess(false);
+            return;
+        }
+
         const rowCol = GoogleSheetsService.findInsertIndex(sheetQueryData.values, chosenWeaponOrOptic);
         setIsCreditingInProgress(true);
 

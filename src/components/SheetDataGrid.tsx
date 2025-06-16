@@ -156,6 +156,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         if (event.colDef.field === 'כוונת') {
             const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(opticsData.values, 'מפרו');
             const valuesForAssign2 = GoogleSheetsService.findValuesUnderHeader(opticsData.values, 'M5');
+            const valuesForAssign3 = GoogleSheetsService.findValuesUnderHeader(opticsData.values, 'מארס');
             const uniqueOptionsMap = new Map<string, { rowIndex: number, colIndex: number, value: string }>();
             valuesForAssign.forEach(item => {
                 if (!uniqueOptionsMap.has('מפרו ' + item.value)) {
@@ -165,6 +166,11 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             valuesForAssign2.forEach(item => {
                 if (!uniqueOptionsMap.has('M5 ' + item.value)) {
                     uniqueOptionsMap.set('M5 ' + item.value, {...item, value: 'M5 ' + item.value});
+                }
+            });
+            valuesForAssign3.forEach(item => {
+                if (!uniqueOptionsMap.has('מארס ' + item.value)) {
+                    uniqueOptionsMap.set('מארס ' + item.value, {...item, value: 'מארס ' + item.value});
                 }
             });
             uniqueOptions = Array.from(uniqueOptionsMap.values());
@@ -239,9 +245,9 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             let colIndex;
             let sheetid;
             let anotherUpdate;
-            if (columnFields.includes(event.colName) || event.colName === "M5" || event.colName === "מפרו") {
+            if (columnFields.includes(event.colName) || event.colName === "M5" || event.colName === "מפרו" || event.colName === "מארס") {
                 rowCol = GoogleSheetsService.findInsertIndex(opticsData.values, event.colName.replace("_", ' '));
-                colIndex = event.colName === "M5" || event.colName === "מפרו" ? 'כוונת' : event.colName;
+                colIndex = event.colName === "M5" || event.colName === "מפרו" || event.colName === 'מארס' ? 'כוונת' : event.colName;
                 sheetid = 813181890;
             } else {
                 rowCol = GoogleSheetsService.findInsertIndex(weaponData.values, event.colName);
@@ -298,7 +304,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             return;
         }
         const updates = [];
-        if (option.value === 'M5 1' || option.value === 'מפרו 1') {
+        if (option.value === 'M5 1' || option.value === 'מפרו 1' || option.value === 'מארס 1') {
             option.value = option.value.split(' ')[0]; // Remove the "1" suffix
 
         }

@@ -72,7 +72,7 @@ const PromptNewSerialWeaponOrOptic: React.FC<promptNewSerialWeaponOrOpticProps> 
 
     const isFormValid = () => {
         // @ts-ignore
-        return newSerialWeaponOrOpticName.trim() && chosenWeaponOrOptic && !serialNumbers.includes(newSerialWeaponOrOpticName);
+        return newSerialWeaponOrOpticName.trim() && chosenWeaponOrOptic && (['M5', 'מפרו', 'מארס', 'מצפן', 'משקפת'].includes(chosenWeaponOrOptic) || !serialNumbers.includes(newSerialWeaponOrOpticName));
     }
 
     return (
