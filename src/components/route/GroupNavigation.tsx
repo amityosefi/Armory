@@ -11,25 +11,26 @@ const GroupNavigation: React.FC<GroupNavigationProps> = ({ sheetGroups }) => {
   const currentPath = location.pathname;
 
   return (
-    <>
-      {/* Group Tabs */}
-      <div className="flex flex-wrap justify-center gap-2">
-        {sheetGroups.map((group, index) => {
-          const isActive = currentPath.includes(`/group/${index}`);
-          return (
-            <Link
-              key={index}
-              to={`/group/${index}`}
-              className={`px-4 py-1 rounded-lg transition-colors font-medium ${
-                isActive ? 'bg-blue-700 text-white shadow-md' : 'bg-blue-500 text-white hover:bg-blue-600'
-              }`}
-            >
-              {group.name}
-            </Link>
-          );
-        })}
-      </div>
-    </>
+    <div className="flex justify-center gap-3">
+      {sheetGroups.map((group, index) => {
+        // Check if this group is active
+        const isActive = currentPath.includes(`/group/${index}`);
+
+        return (
+          <Link
+            key={index}
+            to={`/group/${index}`}
+            className={`px-4 py-1 rounded-lg transition-colors font-medium ${
+              isActive 
+                ? 'bg-blue-700 text-white shadow-md' 
+                : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
+          >
+            {group.name}
+          </Link>
+        );
+      })}
+    </div>
   );
 };
 
