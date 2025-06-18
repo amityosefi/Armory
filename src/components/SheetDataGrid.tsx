@@ -1,9 +1,9 @@
-import React, {useRef, useState, useEffect} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {AgGridReact} from 'ag-grid-react';
 import GoogleSheetsService from "../services/GoogleSheetsService";
 import ConfirmDialog from "./feedbackFromBackendOrUser/DialogCheckForRemoval";
 import StatusMessageProps from "./feedbackFromBackendOrUser/StatusMessageProps";
-import type {GridReadyEvent, GridApi} from 'ag-grid-community';
+import type {GridApi, GridReadyEvent} from 'ag-grid-community';
 import ComboBoxEditor from './ComboBoxEditor';
 import {useGoogleSheetData} from "./hooks/useGoogleSheetData";
 
@@ -106,14 +106,14 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
         return {
             ...col,
-            editable: ['הערות', 'שם_מלא'].includes(col.field),
-            pinned: col.field === 'שם_מלא' || col.field === 'שם_אמצעי' ? 'right' : undefined,
+            editable: ['חתימה','הערות', 'שם_מלא'].includes(col.field),
+            pinned: col.field === 'שם_מלא' ? 'right' : undefined,
             filterParams: {
                 filterOptions: ['contains'],
-                suppressAndOrCondition: true,
+                suppressAndOrCondition: false,
             },
-            cellEditor: ['הערות', 'שם_מלא'].includes(col.field) ? 'agTextCellEditor' : undefined,
-            cellEditorParams: ['הערות', 'שם_מלא'].includes(col.field)
+            cellEditor: ['הערות','חתימה', 'שם_מלא'].includes(col.field) ? 'agTextCellEditor' : undefined,
+            cellEditorParams: ['חתימה','הערות', 'שם_מלא'].includes(col.field)
                 ? { maxLength: 100 }
                 : undefined,
             cellClass: shouldEnableHover && isGroupSheet() ? 'hover-enabled' : undefined,
@@ -123,7 +123,9 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     'text-red-600 font-bold': (params: { value: any; }) => Number(params.value) < 0,
                 }
                 : undefined,
-            hide: ['חתימה', 'זמן_חתימה', 'פלאפון', 'מספר_אישי'].includes(col.field),
+            hide:
+                (col.field === 'חתימה' && selectedSheet.name !== 'טבלת נשקיה') ||
+                ['זמן_חתימה', 'פלאפון', 'מספר_אישי'].includes(col.field),
         };
     });
 
@@ -220,7 +222,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             return;
         }
         setEvent({
-            rowIndex: event.rowIndex,
+            rowIndex: event.data.rowRealIndex,
             colName: event.colDef.field,
             value: event.value,
             oldValue: event.oldValue,
@@ -391,12 +393,15 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
     async function changeNameOrComment(event: any) {
         if (isRevertingNameOrComment.current) {
-            // Skip if we're inside a manual revert
             isRevertingNameOrComment.current = false;
             return;
         }
-        const msg = "חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field + ': ' + event.newValue;
-        if (event.colDef.field === 'הערות' || event.colDef.field === 'שם_מלא') {
+        let msg = '';
+        if (selectedSheet.name === 'טבלת נשקיה')
+            msg = 'חתימה מול החטיבה שונתה ל' + event.newValue + ' מהערך הקודם ' + event.oldValue;
+        else
+            msg = "חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field + ': ' + event.newValue;
+        if (event.colDef.field === 'הערות' || event.colDef.field === 'שם_מלא' || event.colDef.field === 'חתימה') {
             const userEmail = localStorage.getItem('userEmail');
             const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
@@ -584,8 +589,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                             await changeNameOrComment(event);
                         }}
                         onRowSelected={(event) => {
-                            console.log(event.data);
-                            // We're only interested in selected rows
                             if (event.node && event.node.isSelected()) {
                                 const rowData = event.data;
                                 rowData['rowIndex'] = event.rowIndex; // Add index to rowData

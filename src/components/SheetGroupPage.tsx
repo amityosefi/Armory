@@ -111,7 +111,11 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                 flex: 0
             };
             setColumnDefs(cols);
-            setSheetData(rowData);
+            const processed = rowData.map((row: any, index: any) => ({
+                ...row,
+                rowRealIndex: index,
+            }));
+            setSheetData(processed);
         }
     }, [sheetQueryData, isLoading]);
 
