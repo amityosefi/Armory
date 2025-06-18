@@ -248,11 +248,11 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             if (columnFields.includes(event.colName) || event.colName === "M5" || event.colName === "מפרו" || event.colName === "מארס") {
                 rowCol = GoogleSheetsService.findInsertIndex(opticsData.values, event.colName.replace("_", ' '));
                 colIndex = event.colName === "M5" || event.colName === "מפרו" || event.colName === 'מארס' ? 'כוונת' : event.colName;
-                sheetid = 813181890;
+                sheetid = 1158402644;
             } else {
                 rowCol = GoogleSheetsService.findInsertIndex(weaponData.values, event.colName);
                 colIndex = 'מסד';
-                sheetid = 439908422;
+                sheetid = 262055601;
                 anotherUpdate = {
                     sheetId: selectedSheet.id,
                     rowIndex: event.rowIndex + 1,
@@ -279,7 +279,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
                 updates: update,
-                appendSheetId: 553027487,
+                appendSheetId: 1070971626,
                 appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
             });
             setShowMessage(true);
@@ -321,7 +321,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         if (event.colName == 'מסד') {
             msg = `הנשק ${event.colName} ${option.value} הוחתם בהצלחה לחייל ${event.row["שם_מלא"]} ` + " " + selectedSheet.name;
             anotherUpdate = {
-                sheetId: 439908422,
+                sheetId: 262055601,
                 rowIndex: option.rowIndex,
                 colIndex: option.colIndex,
                 value: ""
@@ -342,7 +342,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         } else {
             msg = `האמרל ${event.colName} ${option.value} הוחתם בהצלחה לחייל ${event.row["שם_מלא"]} ` + " " + selectedSheet.name;
             anotherUpdate = {
-                sheetId: 813181890,
+                sheetId: 1158402644,
                 rowIndex: option.rowIndex,
                 colIndex: option.colIndex,
                 value: ""
@@ -353,7 +353,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         const response = await GoogleSheetsService.updateCalls({
             accessToken: accessToken,
             updates: updates,
-            appendSheetId: 553027487,
+            appendSheetId: 1070971626,
             appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
         });
         setShowMessage(true);
@@ -398,7 +398,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     colIndex: columnDefs.findIndex(c => c.field === event.colDef.field),
                     value: event.newValue ?? ""
                 }],
-                appendSheetId: 553027487,
+                appendSheetId: 1070971626,
                 appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
             });
 
