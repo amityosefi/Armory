@@ -136,7 +136,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         let optic = formValues.intentionName;
         const update = [
             {
-                sheetId: 439908422,
+                sheetId: 262055601,
                 rowIndex: selectedSerialInfo?.rowIndex,
                 colIndex: selectedSerialInfo?.colIndex,
                 value: ''
@@ -147,7 +147,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             optic = prefixes.find(prefix => formValues.intentionName.startsWith(prefix)) || '';
 
             update.push({
-                sheetId: 813181890,
+                sheetId: 1158402644,
                 rowIndex: selectedOptic?.rowIndex,
                 colIndex: selectedOptic?.colIndex,
                 value: ''
@@ -158,7 +158,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         const response = await GoogleSheetsService.updateCalls({
             accessToken,
             updates: update,
-            appendSheetId: 553027487,
+            appendSheetId: 1070971626,
             appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail || '']],
             secondAppendSheetId: selectedSheet.id,
             secondAppendValues: [[formValues.fullName, String(formValues.personalNumber), String(formValues.phone), formValues.signature, new Date().toLocaleString('he-IL'), formValues.weaponName, optic, formValues.serialNumber]]
@@ -343,7 +343,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                 await googleSheetsService.updateCalls({
                     accessToken: accessToken,
                     updates: [],
-                    appendSheetId: 553027487,
+                    appendSheetId: 1070971626,
                     appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']]
                 });
             refetch();
@@ -384,7 +384,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             response = await GoogleSheetsService.updateCalls({
                     accessToken: accessToken,
                     updates: updates,
-                    appendSheetId: 553027487,
+                    appendSheetId: 1070971626,
                     appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']],
 
                 }
@@ -432,7 +432,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                         colIndex: columnDefs.map(row => row.headerName).length,
                         value: chosenNewOptic
                     }],
-                    appendSheetId: 553027487,
+                    appendSheetId: 1070971626,
                     appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']],
 
                 }
@@ -487,7 +487,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
                 updates: updates,
-                appendSheetId: 553027487,
+                appendSheetId: 1070971626,
                 appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']],
 
             }
