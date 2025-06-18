@@ -102,23 +102,31 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         const hoverExcludedFields = ['סוג_נשק', 'שם_מלא', 'הערות'];
         const shouldEnableHover = !hoverExcludedFields.includes(col.field);
 
+        const isPaarColumn = col.field === 'פער';
 
         return {
             ...col,
             editable: ['הערות', 'שם_מלא'].includes(col.field),
-            pinned: col.field === 'שם_מלא' ? 'right' : undefined, // 👈 Pin only 'שם_מלא'
+            pinned: col.field === 'שם_מלא' || col.field === 'שם_אמצעי' ? 'right' : undefined,
             filterParams: {
                 filterOptions: ['contains'],
                 suppressAndOrCondition: true,
             },
             cellEditor: ['הערות', 'שם_מלא'].includes(col.field) ? 'agTextCellEditor' : undefined,
             cellEditorParams: ['הערות', 'שם_מלא'].includes(col.field)
-                ? {maxLength: 100}
+                ? { maxLength: 100 }
                 : undefined,
             cellClass: shouldEnableHover && isGroupSheet() ? 'hover-enabled' : undefined,
-            hide: ['חתימה', 'זמן_חתימה', 'פלאפון', 'מספר_אישי'].includes(col.field)
+            cellClassRules: isPaarColumn
+                ? {
+                    'text-green-600 font-bold': (params: { value: any; }) => Number(params.value) > 0,
+                    'text-red-600 font-bold': (params: { value: any; }) => Number(params.value) < 0,
+                }
+                : undefined,
+            hide: ['חתימה', 'זמן_חתימה', 'פלאפון', 'מספר_אישי'].includes(col.field),
         };
     });
+
 
 
     const gridApiRef = useRef<GridApi | null>(null);
@@ -551,6 +559,10 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                         components={{
                             comboBoxEditor: ComboBoxEditor,
                         }}
+                        getRowClass={(params) => {
+                            // @ts-ignore
+                            return params.node.rowIndex % 2 === 0 ? 'ag-row-even' : 'ag-row-odd';
+                        }}
                         columnDefs={columnDefs}
                         rowData={rowData}
                         stopEditingWhenCellsLoseFocus={true}
@@ -559,7 +571,8 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                         defaultColDef={{
                             flex: 1,
                             minWidth: 150,
-                            resizable: true
+                            resizable: true,
+                            // cellClass: 'ag-center-cell',
                         }}
                         rowSelection="single"
                         isRowSelectable={() => isGroupSheet()}
