@@ -180,10 +180,10 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
 
     const isFormValid = () =>
         formValues.fullName.trim() &&
-        formValues.weaponName.trim() &&
+        // formValues.weaponName.trim() &&
         (formValues.personalNumber !== undefined && formValues.personalNumber !== null) &&
         (formValues.phone !== undefined && formValues.phone !== null) &&
-        formValues.serialNumber.trim() &&
+        // formValues.serialNumber.trim() &&
         formValues.signature.trim();
 
     const formatPhone = (raw: string): string => {

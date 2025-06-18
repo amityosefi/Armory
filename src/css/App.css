@@ -27,3 +27,30 @@
     line-height: normal;
     box-sizing: content-box;
 }
+
+.ag-row-even {
+    background-color: #f9f9f9;
+}
+
+.ag-row-odd {
+    background-color: #e0f7ff;
+}
+
+.value-positive {
+    color: green;
+    font-weight: bold;
+}
+
+.value-negative {
+    color: red;
+    font-weight: bold;
+}
+
+.ag-center-cell {
+    display: flex;
+    justify-content: center;  /* Horizontal centering */
+    align-items: center;      /* Vertical centering */
+    height: 100%;
+    text-align: center;
+}
+
