@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { useGoogleSheetData } from './hooks/useGoogleSheetData';
+import type { ColDef } from 'ag-grid-community';
+
 
 const SHEETS = [
     { name: "פלוגה א", range: "א" },
@@ -152,12 +154,12 @@ const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
                     if (source === 'weapon') {
                         const weaponColIndex = headerRow.indexOf('סוג נשק');
                         if (weaponColIndex !== -1) {
-                            count = body.filter(row => row[weaponColIndex] === type).length;
+                            count = body.filter((row: { [x: string]: string; }) => row[weaponColIndex] === type).length;
                         }
                     } else {
                         const opticColIndex = headerRow.indexOf(type);
                         if (opticColIndex !== -1) {
-                            count = body.filter(row => row[opticColIndex]?.trim()).length;
+                            count = body.filter((row: { [x: string]: string; }) => row[opticColIndex]?.trim()).length;
                         }
                     }
 
@@ -172,7 +174,7 @@ const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
                 const stockSource = source === 'weapon' ? weaponBody : opticBody;
 
                 if (stockColIndex !== -1) {
-                    stockCount = stockSource.filter(row => row[stockColIndex]?.trim()).length;
+                    stockCount = stockSource.filter((row: { [x: string]: string; }) => row[stockColIndex]?.trim()).length;
                 }
 
                 row['במלאי'] = stockCount;
@@ -200,10 +202,10 @@ const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
             const opticColIndex = optics.indexOf(name);
 
             if (weaponColIndex !== -1) {
-                count += weaponBody.filter(row => row[weaponColIndex]?.trim()).length;
+                count += weaponBody.filter((row: { [x: string]: string; }) => row[weaponColIndex]?.trim()).length;
             }
             if (opticColIndex !== -1) {
-                count += opticBody.filter(row => row[opticColIndex]?.trim()).length;
+                count += opticBody.filter((row: { [x: string]: string; }) => row[opticColIndex]?.trim()).length;
             }
 
             stockRow[name] = count;
@@ -218,8 +220,8 @@ const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
 
 
 
-    const columnDefs = useMemo(() => {
-        const columns = [
+    const columnDefs: ColDef<any>[] = useMemo(() => {
+        const columns: ColDef<any>[] = [
             { headerName: 'שם אמצעי', field: 'name', pinned: 'right', minWidth: 150, cellStyle: { textAlign: 'right' }, headerClass: 'ag-right-aligned-header' },
             ...SHEETS.map(s => ({
                 headerName: s.name,
@@ -278,13 +280,13 @@ const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
                 headerClass: 'ag-right-aligned-header',
             },
         ];
-        return columns.reverse(); // 👈 Mirror the column order
+        return columns.reverse();
     }, []);
 
 
     return (
         <div className="ag-theme-alpine" style={{ height: '600px', width: '100%', direction: 'rtl' }}>
-            <AgGridReact
+            <AgGridReact<any>
                 rowData={rowData}
                 columnDefs={columnDefs}
                 defaultColDef={{
@@ -295,6 +297,7 @@ const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
                     headerClass: 'ag-right-aligned-header',
                 }}
             />
+
 
         </div>
     );
