@@ -18,7 +18,7 @@ export const sheetGroups: SheetGroup[] = [
       { name: "מסייעת", range: "מסייעת" , id: 493836425},
       { name: "אלון", range: "אלון" , id:  269212444},
       { name: "מכלול", range: "מכלול" , id:  364493809},
-      { name: "פלס״ם", range: "פלסם" , id:  208437580},
+      { name: "פלסם", range: "פלסם" , id:  208437580},
     ]
   },
   {

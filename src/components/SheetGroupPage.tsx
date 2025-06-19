@@ -19,6 +19,7 @@ import PromptNewSerialWeaponOrOptic from "./PromptNewSerialWeaponOrOptic";
 import AddOpticToGroupColumn from "./AddOpticToGroupColumn";
 import {useNavigate} from "react-router-dom";
 import SoldierCardPage from "./SoldierCardPage";
+import SummaryComponent from "./SummaryComponent";
 
 interface SheetGroupPageProps {
     accessToken: string;
@@ -300,12 +301,23 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         const kvPairs = Object.entries(row)
             .filter(([key, val]) =>
                 val &&
-                !['חתימה', 'rowIndex', 'מספר_אישי', 'שם_מלא', 'פלאפון', 'זמן_חתימה'].includes(key)
+                !['חתימה', 'rowIndex', 'rowRealIndex', 'מסד', 'מספר_אישי', 'שם_מלא', 'פלאפון', 'זמן_חתימה'].includes(key)
             )
-            .map(([val, key]) => [
-                mirrorHebrewSmart(val),
-                mirrorHebrewSmart(String(key).replace(/_/g, ' '))
-            ]);
+            .map(([key, val]) => {
+                if (key === 'סוג_נשק') {
+                    const weaponType = String(val).replace(/_/g, ' ');
+                    const serialNumber = row['מסד'] || '';
+                    return [
+                        mirrorHebrewSmart(String(serialNumber)),
+                        mirrorHebrewSmart(weaponType)
+                    ];
+                }
+
+                return [
+                    mirrorHebrewSmart(String(val)),
+                    mirrorHebrewSmart(String(key).replace(/_/g, ' '))
+                ];
+            });
 
         autoTable(doc, {
             startY: y,
@@ -742,6 +754,9 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                     <p className="font-bold">Error:</p>
                     <p>{error instanceof Error ? error.message : 'Failed to fetch sheet data'}</p>
                 </div>
+            ) : [ 'טבלת נשקיה'].includes(currentGroup.sheets[activeTabIndex].name) ? (
+                <SummaryComponent accessToken={accessToken}/>
+
             ) : sheetData.length > 0 || isCreditingInProgress ? (
                 <SheetDataGrid accessToken={accessToken} columnDefs={columnDefs} rowData={sheetData}
                                selectedSheet={selectedSheet} onRowSelected={setSelectedRow}
