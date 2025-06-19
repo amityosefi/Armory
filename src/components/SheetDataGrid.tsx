@@ -107,7 +107,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         return {
             ...col,
             editable: ['חתימה','הערות', 'שם_מלא'].includes(col.field),
-            pinned: col.field === 'שם_מלא' ? 'right' : undefined,
+            pinned: col.field === 'שם_מלא' || col.field === 'שם_אמצעי' ? 'right' : undefined,
             filterParams: {
                 filterOptions: ['contains'],
                 suppressAndOrCondition: false,
