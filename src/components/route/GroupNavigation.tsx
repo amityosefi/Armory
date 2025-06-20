@@ -19,7 +19,7 @@ const GroupNavigation: React.FC<GroupNavigationProps> = ({ sheetGroups }) => {
         return (
           <Link
             key={index}
-            to={`/group/${index}`}
+            to={`/group/${index}/sheet/0`}
             className={`px-4 py-1 rounded-lg transition-colors font-medium ${
               isActive 
                 ? 'bg-blue-700 text-white shadow-md' 

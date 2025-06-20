@@ -27,10 +27,10 @@ interface SheetGroupPageProps {
 }
 
 const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups}) => {
-    const {groupId} = useParams();
+    const {groupId, sheetIndex} = useParams();
     const groupIndex = parseInt(groupId || '0');
     const currentGroup = sheetGroups[groupIndex] || sheetGroups[0];
-    const [activeTabIndex, setActiveTabIndex] = useState(0);
+    const [activeTabIndex, setActiveTabIndex] = useState(parseInt(sheetIndex || '0')); // Initialize from URL
     const [selectedRow, setSelectedRow] = useState<any | null>(null);
     const [assignSoldier, setAssignSoldier] = useState(false);
     const [addOpticColumn, setAddOpticColumn] = useState(false);
@@ -97,6 +97,14 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     const [newSerialWeaponOrOptic, setNewSerialWeaponOrOptic] = useState(false);
 
     useEffect(() => {
+        // Update activeTabIndex if the URL's sheetIndex changes
+        const currentSheetIndex = parseInt(sheetIndex || '0');
+        if (activeTabIndex !== currentSheetIndex) {
+            setActiveTabIndex(currentSheetIndex);
+        }
+    }, [sheetIndex]); // Depend on sheetIndex from URL
+
+    useEffect(() => {
         if (sheetQueryData && !isLoading) {
             if (!sheetQueryData.values?.length) {
                 setSheetData([]);
@@ -125,9 +133,11 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         if (currentGroup.sheets.length > 0) handleTabChange(0);
     }, [currentGroup]);
 
-    const handleTabChange = (sheetIndex: number) => {
-        setActiveTabIndex(sheetIndex);
+    const handleTabChange = (newSheetIndex: number) => {
+        setActiveTabIndex(newSheetIndex);
         setSelectedRow(null);
+        // Update the URL when the tab changes
+        navigate(`/group/${groupId}/sheet/${newSheetIndex}`);
     };
 
     const handleConfirmNewSoldier = async () => {
