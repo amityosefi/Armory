@@ -79,11 +79,14 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
       {/* Search Bar */}
       <div className="flex w-full gap-2">
         <input
-          type="text"
-          placeholder="חפש בכל הגיליונות"
-          className="flex-grow px-3 py-1 border rounded-md text-right"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
+            type="text"
+            placeholder="חפש בכל הגיליונות"
+            className="flex-grow px-3 py-1 border rounded-md text-right"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSearch();
+            }}
         />
         <button
           onClick={handleSearch}
@@ -124,12 +127,19 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
                 </thead>
                 <tbody>
                   {results.map((result, idx) =>
-                    <tr key={idx} className="border-t" onClick={() => handleClick(result)}>
-                      <td className="border px-2 py-1 break-words w-1/3" >
-                        {result.sheetName}
-                      </td>
-                      <td className="border px-2 py-1 break-words w-2/3">{result.cellValue}</td>
-                    </tr>
+                      <tr
+                          key={idx}
+                          className="border-t cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleClick(result)}
+                      >
+                        <td className="border px-2 py-1 break-words w-1/3 text-blue-700 hover:underline">
+                          {result.sheetName}
+                        </td>
+                        <td className="border px-2 py-1 break-words w-2/3 text-blue-700 hover:underline">
+                          {result.cellValue}
+                        </td>
+                      </tr>
+
                   )}
                 </tbody>
               </table>
