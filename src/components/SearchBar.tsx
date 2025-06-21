@@ -16,7 +16,7 @@ interface SearchResult {
 
 const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
   const navigate = useNavigate();
-  
+
   const [searchText, setSearchText] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -58,18 +58,21 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
         ...sheet,
         groupIndex,
         sheetIndex,
+        sheetRange: sheet.range,
       }))
     );
-    
-    const sheetWithIndexes = sheetsWithIndexes.find(sheet => `'${sheet.range}'` === result.sheetName);
-    if (sheetWithIndexes) {
-      navigate(`/group/${sheetWithIndexes.groupIndex}/sheet/${sheetWithIndexes.sheetIndex}/row/${result.rowIndex}`);
-      setShowModal(false);
-    } else {
-      console.warn(`Sheet "${result.sheetName}" not found in "${sheetsWithIndexes}".`);
-    }
-  };
 
+    const sheetWithIndexes = sheetsWithIndexes.find(sheet => `'${sheet.range}'` === result.sheetName);
+    if (!sheetWithIndexes) {
+      console.warn(`Sheet "${result.sheetName}" not found in "${sheetsWithIndexes}".`);
+      return;
+    }
+    if (sheetWithIndexes.groupIndex === 0)
+      navigate(`/sheet/${sheetWithIndexes.sheetRange}/soldier/${result.rowIndex}`);
+    else
+      navigate(`/group/${sheetWithIndexes.groupIndex}/sheet/${sheetWithIndexes.sheetIndex}/row/${result.rowIndex}`);
+    setShowModal(false);
+  }
 
   return (
     <>
@@ -120,17 +123,14 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {results.map((result, idx) => {
-                    const groupIndex = sheetGroups.findIndex(group => group.name === result.sheetName);
-                    return (
-                      <tr key={idx} className="border-t" onClick={() => handleClick(result)}>
-                        <td className="border px-2 py-1 break-words w-1/3">
-                          {result.sheetName}
-                        </td>
-                        <td className="border px-2 py-1 break-words w-2/3">{result.cellValue}</td>
-                      </tr>
-                    );
-                  })}
+                  {results.map((result, idx) =>
+                    <tr key={idx} className="border-t" onClick={() => handleClick(result)}>
+                      <td className="border px-2 py-1 break-words w-1/3" >
+                        {result.sheetName}
+                      </td>
+                      <td className="border px-2 py-1 break-words w-2/3">{result.cellValue}</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             )}
