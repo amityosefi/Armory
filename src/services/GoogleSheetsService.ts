@@ -87,60 +87,65 @@ class GoogleSheetsService {
         return {columnDefs, rowData};
     }
 
-    static async searchAcrossAllSheets({
-                                           searchValue,
-                                           accessToken,
-                                       }: {
-        searchValue: string;
-        accessToken: string;
-    }) {
-        const matches: {
-            sheetName: string;
-            cellValue: string;
-        }[] = [];
+static async searchAcrossAllSheets({
+    searchValue,
+    accessToken,
+}: {
+    searchValue: string;
+    accessToken: string;
+}) {
+    const matches: {
+        sheetName: string;
+        cellValue: string;
+        rowIndex: number; // 1-based row index (excluding header)
+    }[] = [];
 
-        const sheetTitles = sheetGroups.flatMap((group) =>
-            group.sheets.map((sheet) => sheet.range)
-        );
+    const sheetTitles = sheetGroups.flatMap((group) =>
+        group.sheets.map((sheet) => sheet.range)
+    );
 
-        const rangesParam = sheetTitles.map((title) => `ranges=${encodeURIComponent(title)}`).join("&");
+    const rangesParam = sheetTitles.map((title) => `ranges=${encodeURIComponent(title)}`).join("&");
 
-        const response = await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}/values:batchGet?${rangesParam}`,
-            {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    "Content-Type": "application/json",
-                },
-            }
-        );
+    const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}/values:batchGet?${rangesParam}`,
+        {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+            },
+        }
+    );
 
-        const data = await response.json();
+    const data = await response.json();
 
-        if (data.valueRanges && Array.isArray(data.valueRanges)) {
-            for (const valueRange of data.valueRanges) {
-                const sheetName = valueRange.range.split("!")[0]; // Extract sheet name from "SheetName!A1:Z"
-                const rows = valueRange.values || [];
+    if (data.valueRanges && Array.isArray(data.valueRanges)) {
+        for (const valueRange of data.valueRanges) {
+            const sheetName = valueRange.range.split("!")[0];
+            const rows = valueRange.values || [];
 
-                rows.forEach((row: string[]) => {
-                    row.forEach((cellValue: string) => {
-                        if (
-                            typeof cellValue === "string" &&
-                            cellValue.toLowerCase().includes(searchValue.toLowerCase())
-                        ) {
-                            matches.push({
-                                sheetName,
-                                cellValue,
-                            });
-                        }
-                    });
+            // Skip header (index 0)
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+
+                row.forEach((cellValue: string) => {
+                    if (
+                        typeof cellValue === "string" &&
+                        cellValue.toLowerCase().includes(searchValue.toLowerCase())
+                    ) {
+                        matches.push({
+                            sheetName,
+                            cellValue,
+                            rowIndex: i - 1,
+                        });
+                    }
                 });
             }
         }
-
-        return matches;
     }
+
+    return matches;
+}
 
 
     static async updateCalls({
