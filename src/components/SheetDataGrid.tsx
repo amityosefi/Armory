@@ -128,6 +128,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             hide:
                 (col.field === 'חתימה' && selectedSheet.name !== 'טבלת נשקיה') ||
                 ['זמן_חתימה', 'פלאפון', 'מספר_אישי'].includes(col.field),
+            width: col.field === 'שם_מלא' ? 150 : 150,
         };
     });
 
@@ -585,14 +586,16 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                         }}
                         columnDefs={columnDefs}
                         rowData={rowData}
+                        rowHeight={24}         // 👈 Shrink row height
+                        headerHeight={28}
                         stopEditingWhenCellsLoseFocus={true}
                         domLayout="normal"
                         enableRtl={true}
                         defaultColDef={{
-                            flex: 1,
-                            minWidth: 150,
+                            // flex: 1,
+                            minWidth: 100,
+                            sortable: true,
                             resizable: true,
-                            // cellClass: 'ag-center-cell',
                         }}
                         rowSelection="single"
                         isRowSelectable={() => isGroupSheet()}

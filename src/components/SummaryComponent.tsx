@@ -1,20 +1,20 @@
-import React, { useMemo } from 'react';
-import { AgGridReact } from 'ag-grid-react';
-import { useGoogleSheetData } from './hooks/useGoogleSheetData';
-import type { ColDef } from 'ag-grid-community';
+import React, {useMemo} from 'react';
+import {AgGridReact} from 'ag-grid-react';
+import {useGoogleSheetData} from './hooks/useGoogleSheetData';
+import type {ColDef} from 'ag-grid-community';
 
 
 const SHEETS = [
-    { name: "פלוגה א", range: "א" },
-    { name: "פלוגה ב", range: "ב" },
-    { name: "פלוגה ג", range: "ג" },
-    { name: "מסייעת", range: "מסייעת" },
-    { name: "אלון", range: "אלון" },
-    { name: "פלסם", range: "פלסם" },
-    { name: "מכלול", range: "מכלול" },
+    {name: "פלוגה א", range: "א"},
+    {name: "פלוגה ב", range: "ב"},
+    {name: "פלוגה ג", range: "ג"},
+    {name: "מסייעת", range: "מסייעת"},
+    {name: "אלון", range: "אלון"},
+    {name: "פלסם", range: "פלסם"},
+    {name: "מכלול", range: "מכלול"},
 ];
 
-const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
+const SummaryComponent = ({accessToken}: { accessToken: string }) => {
     const {
         data: weaponQuery,
     } = useGoogleSheetData(
@@ -123,6 +123,18 @@ const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
             enabled: !!accessToken
         }
     );
+    const {
+        data: h,
+    } = useGoogleSheetData(
+        {
+            accessToken,
+            range: "טבלת נשקיה"
+        },
+        {
+            processData: false,
+            enabled: !!accessToken
+        }
+    );
 
     const allSheets = [a, b, c, d, e, f, g];
     const allSheetsNames = SHEETS.map(s => s.name);
@@ -138,11 +150,9 @@ const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
 
         const result: any[] = [];
 
-        const allItems = [...headers, ...optics];
-
         const processType = (nameList: string[], source: 'weapon' | 'optic') => {
             nameList.forEach(type => {
-                const row: Record<string, any> = { name: type };
+                const row: Record<string, any> = {name: type};
                 let total = 0;
 
                 allSheets.forEach((sheetQuery, idx) => {
@@ -174,14 +184,26 @@ const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
                 const stockSource = source === 'weapon' ? weaponBody : opticBody;
 
                 if (stockColIndex !== -1) {
-                    stockCount = stockSource.filter((row: { [x: string]: string; }) => row[stockColIndex]?.trim()).length;
+                    stockCount = stockSource.filter((row: {
+                        [x: string]: string;
+                    }) => row[stockColIndex]?.trim()).length;
                 }
 
                 row['במלאי'] = stockCount;
                 row['סה"כ'] = total + stockCount;
 
-                row['חתימה'] = 0;
-                row['פער'] = 0 - row['סה"כ'];
+                row['חתימה'] = (() => {
+                    const summarySheetHeader = h?.values?.[0] || [];
+                    const summarySheetBody = h?.values?.slice(1) || [];
+                    const nameIndex = summarySheetHeader.indexOf('שם אמצעי');
+                    const hatimaIndex = summarySheetHeader.indexOf('חתימה');
+
+                    if (nameIndex === -1 || hatimaIndex === -1) return 0;
+                    const matchedRow = summarySheetBody.find((r: { [x: string]: string; }) => r[nameIndex] === type);
+                    return Number(matchedRow?.[hatimaIndex]) || 0;
+                })();
+
+                row['פער'] = row['חתימה'] - row['סה"כ'];
 
 
                 result.push(row);
@@ -192,8 +214,7 @@ const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
         processType(optics, 'optic');
 
         // ✅ Add the "מלאי" summary row at the top
-        const stockRow: Record<string, any> = { name: 'מלאי' };
-
+        const stockRow: Record<string, any> = {name: 'מלאי'};
         result.forEach(row => {
             const name = row.name;
             let count = 0;
@@ -219,36 +240,46 @@ const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
     ]);
 
 
-
     const columnDefs: ColDef<any>[] = useMemo(() => {
         const columns: ColDef<any>[] = [
-            { headerName: 'שם אמצעי', field: 'name', pinned: 'right', minWidth: 150, cellStyle: { textAlign: 'right' }, headerClass: 'ag-right-aligned-header' },
+            {
+                headerName: 'שם אמצעי',
+                field: 'name',
+                pinned: 'right',
+                width: 130, // ✅ fixed width
+                cellStyle: { textAlign: 'right' },
+                headerClass: 'ag-right-aligned-header'
+            },
             ...SHEETS.map(s => ({
                 headerName: s.name,
                 field: s.name,
                 type: 'numericColumn',
-                cellStyle: { textAlign: 'right' },
+                width: 85, // ✅ fixed width
+                cellStyle: { textAlign: 'center' },
                 headerClass: 'ag-right-aligned-header'
             })),
             {
                 headerName: 'מנופק',
                 field: 'מנופק',
                 type: 'numericColumn',
-                cellStyle: { textAlign: 'right', fontWeight: 'bold' },
+                width: 70,
+                cellStyle: { textAlign: 'center' },
                 headerClass: 'ag-right-aligned-header'
             },
             {
                 headerName: 'במלאי',
                 field: 'במלאי',
                 type: 'numericColumn',
-                cellStyle: { textAlign: 'right', fontWeight: 'bold' },
+                width: 70,
+                cellStyle: { textAlign: 'center' },
                 headerClass: 'ag-right-aligned-header'
             },
             {
                 headerName: 'סה"כ',
                 field: 'סה"כ',
                 type: 'numericColumn',
-                cellStyle: { textAlign: 'right', fontWeight: 'bold' },
+                width: 70,
+                cellStyle: { textAlign: 'center', fontWeight: 'bold' },
                 headerClass: 'ag-right-aligned-header'
             },
             {
@@ -256,7 +287,8 @@ const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
                 field: 'חתימה',
                 editable: true,
                 type: 'numericColumn',
-                cellStyle: { textAlign: 'right', backgroundColor: '#fff7d1' },
+                width: 80,
+                cellStyle: { textAlign: 'center', backgroundColor: '#fff7d1' },
                 headerClass: 'ag-right-aligned-header',
                 valueParser: (params) => Number(params.newValue) || 0,
             },
@@ -264,6 +296,7 @@ const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
                 headerName: 'פער',
                 field: 'פער',
                 type: 'numericColumn',
+                width: 70,
                 valueGetter: (params) => {
                     const hatima = Number(params.data?.חתימה || 0);
                     const total = Number(params.data?.["סה\"כ"] || 0);
@@ -284,21 +317,22 @@ const SummaryComponent = ({ accessToken }: { accessToken: string }) => {
     }, []);
 
 
+
     return (
-        <div className="ag-theme-alpine" style={{ height: '600px', width: '100%', direction: 'rtl' }}>
+        <div
+            className="ag-theme-alpine"
+            style={{ height: '600px', width: '100%', direction: 'rtl', overflowX: 'auto' }}
+        >
             <AgGridReact<any>
                 rowData={rowData}
                 columnDefs={columnDefs}
+                rowHeight={20}
+                headerHeight={25}
                 defaultColDef={{
                     resizable: true,
                     sortable: true,
-                    flex: 1,
-                    cellStyle: { textAlign: 'right' },
-                    headerClass: 'ag-right-aligned-header',
                 }}
             />
-
-
         </div>
     );
 };
