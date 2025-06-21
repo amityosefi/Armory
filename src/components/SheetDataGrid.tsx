@@ -6,7 +6,7 @@ import StatusMessageProps from "./feedbackFromBackendOrUser/StatusMessageProps";
 import type {GridApi, GridReadyEvent} from 'ag-grid-community';
 import ComboBoxEditor from './ComboBoxEditor';
 import {useGoogleSheetData} from "./hooks/useGoogleSheetData";
-import {useParams} from 'react-router-dom';
+import {useParams, useNavigate} from 'react-router-dom';
 
 
 interface SheetDataGridProps {
@@ -79,6 +79,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     const [selectedWeapon, setSelectedWeapon] = useState('');
 
     const {rowIndex} = useParams();
+    const navigate = useNavigate();
 
     const comboBoxRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -233,7 +234,11 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
     // @ts-ignore
     async function onClickedOptic(event: any): Promise<boolean> {
-
+        // Redirect if first column is clicked
+        if (event.colDef && event.colDef.field === columnDefs[0].field) {
+            navigate(`/sheet/${selectedSheet.range}/soldier/${event.rowIndex + 2}`);
+            return false;
+        }
         if (!isGroupSheet() || ['סוג_נשק', 'שם_מלא', 'הערות'].includes(event.colDef.field)) { // @ts-ignore
             return;
         }
