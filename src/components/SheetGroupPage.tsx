@@ -54,7 +54,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         rowIndex: number;
         colIndex: number
     } | null>(null);
-    const selectedSheet = currentGroup.sheets[activeTabIndex];
+    const selectedSheet = currentGroup.sheets[activeTabIndex] || currentGroup.sheets[0];
     const encodedRange = selectedSheet ? encodeURIComponent(selectedSheet.range) : '';
     const isGroupSheet = () => ['א', 'ב', 'ג', 'מסייעת', 'מכלול', 'פלסם', 'אלון'].includes(currentGroup.sheets[groupIndex]?.range);
 
@@ -129,15 +129,12 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     }, [sheetQueryData, isLoading]);
 
 
-    useEffect(() => {
-        if (currentGroup.sheets.length > 0) handleTabChange(0);
-    }, [currentGroup]);
 
     const handleTabChange = (newSheetIndex: number) => {
         setActiveTabIndex(newSheetIndex);
         setSelectedRow(null);
         // Update the URL when the tab changes
-        navigate(`/group/${groupId}/sheet/${newSheetIndex}`);
+        navigate(`/group/${groupId}/sheet/${newSheetIndex}/row/0`);
     };
 
     const handleConfirmNewSoldier = async () => {
@@ -764,7 +761,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                     <p className="font-bold">Error:</p>
                     <p>{error instanceof Error ? error.message : 'Failed to fetch sheet data'}</p>
                 </div>
-            ) : [ 'טבלת נשקיה'].includes(currentGroup.sheets[activeTabIndex].name) ? (
+            ) : [ 'טבלת נשקיה'].includes(selectedSheet.name) ? (
                 <SummaryComponent accessToken={accessToken}/>
 
             ) : sheetData.length > 0 || isCreditingInProgress ? (

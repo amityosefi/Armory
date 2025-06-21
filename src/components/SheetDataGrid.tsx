@@ -6,6 +6,7 @@ import StatusMessageProps from "./feedbackFromBackendOrUser/StatusMessageProps";
 import type {GridApi, GridReadyEvent} from 'ag-grid-community';
 import ComboBoxEditor from './ComboBoxEditor';
 import {useGoogleSheetData} from "./hooks/useGoogleSheetData";
+import {useParams} from 'react-router-dom';
 
 
 interface SheetDataGridProps {
@@ -77,6 +78,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
     const [selectedWeapon, setSelectedWeapon] = useState('');
 
+    const {rowIndex} = useParams();
 
     const comboBoxRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -132,6 +134,19 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
 
     const gridApiRef = useRef<GridApi | null>(null);
+
+
+    useEffect(() => {
+        // Only try to scroll if gridApi is ready and rowData is loaded
+        if (gridApiRef.current && rowData && rowData.length > 0) {
+            if (rowIndex) {
+                const rowIndexNumber = parseInt(rowIndex, 10);
+                if (!isNaN(rowIndexNumber) && rowIndexNumber >= 0 && rowIndexNumber < rowData.length) {
+                    gridApiRef.current.ensureIndexVisible(rowIndexNumber, 'middle');
+                }
+            }
+        }
+    }, [rowIndex, rowData, gridApiRef.current]);
 
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [event, setEvent] = useState<{

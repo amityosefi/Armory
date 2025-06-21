@@ -29,7 +29,7 @@ function App() {
           {user ? (
             <>
               <Route path="/" element={<Navigate to="/group/0" replace />} />
-              <Route path="/group/:groupId/sheet/:sheetIndex/*" element={
+              <Route path="/group/:groupId/sheet/:sheetIndex/row/:rowIndex/*" element={
                 <div className="w-full max-w-full md:px-4">
                   <NavBar 
                     sheetGroups={sheetGroups} 
