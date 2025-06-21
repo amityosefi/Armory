@@ -136,7 +136,7 @@ static async searchAcrossAllSheets({
                         matches.push({
                             sheetName,
                             cellValue,
-                            rowIndex: i + 1,
+                            rowIndex: i - 1,
                         });
                     }
                 });
