@@ -11,6 +11,7 @@ interface SearchBarProps {
 interface SearchResult {
   sheetName: string;
   cellValue: string;
+  rowIndex: number;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
@@ -51,16 +52,61 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
     };
   }, [showModal]);
 
+  const handleClick = (result: SearchResult) => {
+    const sheetsWithIndexes = sheetGroups.flatMap((group, groupIndex) =>
+      group.sheets.map((sheet, sheetIndex) => ({
+        ...sheet,
+        groupIndex,
+        sheetIndex,
+      }))
+    );
+
+    const sheetWithIndexes = sheetsWithIndexes.find(sheet => `'${sheet.range}'` === result.sheetName);
+    if (sheetWithIndexes) {
+      navigate(`/group/${sheetWithIndexes.groupIndex}/sheet/${sheetWithIndexes.sheetIndex}/row/${result.rowIndex}`);
+      setShowModal(false);
+    } else {
+      console.warn(`Sheet "${result.sheetName}" not found in "${sheetsWithIndexes}".`);
+    }
+  };
+
+
+  const handleGroupClick = (result: SearchResult) => {
+    const sheetsWithIndexes = sheetGroups.flatMap((group, groupIndex) =>
+        group.sheets.map((sheet, sheetIndex) => ({
+          ...sheet,
+          groupIndex,
+          sheetIndex,
+          sheetRange: sheet.range,
+        }))
+    );
+
+    const sheetWithIndexes = sheetsWithIndexes.find(sheet => `'${sheet.range}'` === result.sheetName);
+    if (!sheetWithIndexes) {
+      console.warn(`Sheet "${result.sheetName}" not found in "${sheetsWithIndexes}".`);
+      return;
+    }
+    console.log("hey")
+    if (sheetWithIndexes.groupIndex === 0)
+      navigate(`/group/${sheetWithIndexes.groupIndex}/sheet/${sheetWithIndexes.sheetIndex}/row/0`);
+    else
+      navigate(`/group/${sheetWithIndexes.groupIndex}/sheet/${sheetWithIndexes.sheetIndex}/row/0`);
+    setShowModal(false);
+  }
+
   return (
     <>
       {/* Search Bar */}
       <div className="flex w-full gap-2">
         <input
-          type="text"
-          placeholder="חפש בכל הגיליונות"
-          className="flex-grow px-3 py-1 border rounded-md text-right"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
+            type="text"
+            placeholder="חפש בכל הגיליונות"
+            className="flex-grow px-3 py-1 border rounded-md text-right"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSearch();
+            }}
         />
         <button
           onClick={handleSearch}
@@ -100,29 +146,22 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {results.map((result, idx) => {
-                    const groupIndex = sheetGroups.findIndex(group => group.name === result.sheetName);
-                    return (
-                      <tr key={idx} className="border-t">
-                        <td className="border px-2 py-1 break-words w-1/3">
-                          {groupIndex !== -1 ? (
-                            <button
-                              className="text-blue-600 hover:underline"
-                              onClick={() => {
-                                navigate(`/group/${groupIndex}`);
-                                setShowModal(false);
-                              }}
-                            >
-                              {result.sheetName}
-                            </button>
-                          ) : (
-                            result.sheetName
-                          )}
+                  {results.map((result, idx) =>
+                      <tr
+                          key={idx}
+                          className="border-t cursor-pointer hover:bg-gray-100"
+                      >
+                        <td className="border px-2 py-1 break-words w-1/3 text-blue-700 hover:underline"
+                            onClick={() => handleGroupClick(result)}>
+                          {result.sheetName}
                         </td>
-                        <td className="border px-2 py-1 break-words w-2/3">{result.cellValue}</td>
+                        <td className="border px-2 py-1 break-words w-2/3 text-blue-700 hover:underline"
+                            onClick={() => handleClick(result)}>
+                          {result.cellValue}
+                        </td>
                       </tr>
-                    );
-                  })}
+
+                  )}
                 </tbody>
               </table>
             )}

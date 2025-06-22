@@ -6,6 +6,7 @@ import StatusMessageProps from "./feedbackFromBackendOrUser/StatusMessageProps";
 import type {GridApi, GridReadyEvent} from 'ag-grid-community';
 import ComboBoxEditor from './ComboBoxEditor';
 import {useGoogleSheetData} from "./hooks/useGoogleSheetData";
+import {useParams, useNavigate} from 'react-router-dom';
 
 
 interface SheetDataGridProps {
@@ -77,6 +78,8 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
     const [selectedWeapon, setSelectedWeapon] = useState('');
 
+    const {rowIndex} = useParams();
+    const navigate = useNavigate();
 
     const comboBoxRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -126,12 +129,26 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             hide:
                 (col.field === 'חתימה' && selectedSheet.name !== 'טבלת נשקיה') ||
                 ['זמן_חתימה', 'פלאפון', 'מספר_אישי'].includes(col.field),
+            width: col.field === 'שם_מלא' ? 150 : 150,
         };
     });
 
 
 
     const gridApiRef = useRef<GridApi | null>(null);
+
+
+    useEffect(() => {
+        // Only try to scroll if gridApi is ready and rowData is loaded
+        if (gridApiRef.current && rowData && rowData.length > 0) {
+            if (rowIndex) {
+                const rowIndexNumber = parseInt(rowIndex, 10);
+                if (!isNaN(rowIndexNumber) && rowIndexNumber >= 0 && rowIndexNumber < rowData.length) {
+                    gridApiRef.current.ensureIndexVisible(rowIndexNumber, 'middle');
+                }
+            }
+        }
+    }, [rowIndex, rowData, gridApiRef.current]);
 
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [event, setEvent] = useState<{
@@ -217,8 +234,12 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
     // @ts-ignore
     async function onClickedOptic(event: any): Promise<boolean> {
-
-        if (!isGroupSheet() || ['סוג_נשק', 'שם_מלא', 'הערות'].includes(event.colDef.field)) { // @ts-ignore
+        // Redirect if first column is clicked
+        if (event.colDef && event.colDef.field === columnDefs[0].field) {
+            navigate(`/sheet/${selectedSheet.range}/soldier/${event.data['rowRealIndex'] + 2}`);
+            return false;
+        }
+        if (!isGroupSheet() || ['סוג_נשק', 'שם_מלא', 'אמצעים' ,'הערות'].includes(event.colDef.field)) { // @ts-ignore
             return;
         }
         setEvent({
@@ -401,14 +422,14 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             msg = 'חתימה מול החטיבה שונתה ל' + event.newValue + ' מהערך הקודם ' + event.oldValue;
         else
             msg = "חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field + ': ' + event.newValue;
-        if (event.colDef.field === 'הערות' || event.colDef.field === 'שם_מלא' || event.colDef.field === 'חתימה') {
+        if (event.colDef.field === 'הערות') {
             const userEmail = localStorage.getItem('userEmail');
             const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
                 updates: [{
                     sheetId: selectedSheet.id,
                     rowIndex: event.rowIndex + 1,
-                    colIndex: columnDefs.findIndex(c => c.field === event.colDef.field),
+                    colIndex: incomingColumnDefs.findIndex(c => c.field === event.colDef.field),
                     value: event.newValue ?? ""
                 }],
                 appendSheetId: 1070971626,
@@ -570,14 +591,16 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                         }}
                         columnDefs={columnDefs}
                         rowData={rowData}
+                        rowHeight={24}         // 👈 Shrink row height
+                        headerHeight={28}
                         stopEditingWhenCellsLoseFocus={true}
                         domLayout="normal"
                         enableRtl={true}
                         defaultColDef={{
-                            flex: 1,
-                            minWidth: 150,
+                            // flex: 1,
+                            minWidth: 100,
+                            sortable: true,
                             resizable: true,
-                            // cellClass: 'ag-center-cell',
                         }}
                         rowSelection="single"
                         isRowSelectable={() => isGroupSheet()}

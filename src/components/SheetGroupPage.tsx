@@ -10,7 +10,6 @@ import StatusMessageProps from './feedbackFromBackendOrUser/StatusMessageProps';
 import AssignWeapon from './AssignWeapon';
 import AcceptSoldier from './feedbackFromBackendOrUser/AcceptSoldierWeapon';
 import {jsPDF} from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import googleSheetsService from "../services/GoogleSheetsService";
 
 import '../fonts/NotoSansHebrew-normal';
@@ -18,7 +17,6 @@ import PromptNewWeaponOrOptic from "./PromptNewWeaponOrOptic";
 import PromptNewSerialWeaponOrOptic from "./PromptNewSerialWeaponOrOptic";
 import AddOpticToGroupColumn from "./AddOpticToGroupColumn";
 import {useNavigate} from "react-router-dom";
-import SoldierCardPage from "./SoldierCardPage";
 import SummaryComponent from "./SummaryComponent";
 
 interface SheetGroupPageProps {
@@ -34,7 +32,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     const [selectedRow, setSelectedRow] = useState<any | null>(null);
     const [assignSoldier, setAssignSoldier] = useState(false);
     const [addOpticColumn, setAddOpticColumn] = useState(false);
-    const [openSoldierCard, setOpenSoldierCard] = useState(false);
     const [formValues, setFormValues] = useState({
         fullName: '',
         personalNumber: null,
@@ -54,7 +51,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         rowIndex: number;
         colIndex: number
     } | null>(null);
-    const selectedSheet = currentGroup.sheets[activeTabIndex];
+    const selectedSheet = currentGroup.sheets[activeTabIndex] || currentGroup.sheets[0];
     const encodedRange = selectedSheet ? encodeURIComponent(selectedSheet.range) : '';
     const isGroupSheet = () => ['א', 'ב', 'ג', 'מסייעת', 'מכלול', 'פלסם', 'אלון'].includes(currentGroup.sheets[groupIndex]?.range);
 
@@ -129,15 +126,12 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     }, [sheetQueryData, isLoading]);
 
 
-    useEffect(() => {
-        if (currentGroup.sheets.length > 0) handleTabChange(0);
-    }, [currentGroup]);
 
     const handleTabChange = (newSheetIndex: number) => {
         setActiveTabIndex(newSheetIndex);
         setSelectedRow(null);
         // Update the URL when the tab changes
-        navigate(`/group/${groupId}/sheet/${newSheetIndex}`);
+        navigate(`/group/${groupId}/sheet/${newSheetIndex}/row/0`);
     };
 
     const handleConfirmNewSoldier = async () => {
@@ -195,151 +189,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         refetch();
     };
 
-
-// Helper to reverse only Hebrew words, not numbers or English
-    const mirrorHebrewSmart = (str: string) => {
-        return str
-            .split(/\s+/)
-            .map(word =>
-                /[\u0590-\u05FF]/.test(word) ? word.split('').reverse().join('') : word
-            )
-            .reverse() // Reverse word order too
-            .join(' ');
-    };
-
-    const downloadData = (row: any) => {
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 10;
-        let y = 10;
-
-        doc.addFont('NotoSansHebrew-normal.ttf', 'NotoSansHebrew', 'normal');
-        doc.setFont('NotoSansHebrew');
-        doc.setFontSize(12);
-
-        // Title in the center
-        doc.setFontSize(18);
-        doc.text(mirrorHebrewSmart('טופס חיתמת חייל גדוד .1018'), pageWidth / 2, y, {align: 'center'});
-        y += 10;
-
-        // Right-up: date and time
-        const dateStr = new Date().toLocaleString('he-IL').split(' ');
-        doc.setFontSize(10);
-        doc.text(mirrorHebrewSmart(`שם מלא: ${row['שם_מלא'] || ''}`), pageWidth - margin, y, {align: 'right'});
-        doc.text(mirrorHebrewSmart('תאריך נוכחי: '), margin, y, {align: 'left'});
-
-        y += 10;
-        doc.text(mirrorHebrewSmart(`מספר אישי: ${row['מספר_אישי'] || ''}`), pageWidth - margin, y, {align: 'right'});
-        doc.text(dateStr[1] + ' ' + dateStr[0], margin, y, {align: 'left'});
-
-        y += 10;
-        doc.text(mirrorHebrewSmart('תאריך חתימה: '), margin, y, {align: 'left'});
-
-        y += 10;
-        doc.text(mirrorHebrewSmart(row['זמן_חתימה']), margin, y, {align: 'left'});
-
-        // Section: פלוגה + פלאפון
-        y += 15;
-        autoTable(doc, {
-            startY: y,
-            body: [[mirrorHebrewSmart('פלוגה'), mirrorHebrewSmart('פלאפון')],
-                [mirrorHebrewSmart(selectedSheet.name), mirrorHebrewSmart(row['פלאפון'] || '')]],
-            styles: {font: 'NotoSansHebrew', halign: 'right'},
-            margin: {left: margin, right: margin},
-        });
-
-        // Dot notes
-        // @ts-ignore
-        y = doc.lastAutoTable.finalY + 15;
-        const notes = [
-            'הנני מצהיר/ה כי ביצעתי מטווח יום + לילה בסוג הנשק הנ״ל שעליו אני חותם.',
-            'הנני בקיא בהפעלתו ובהוראות הבטיחות בנושא אחזקת הנשק כולל שימוש במק פורק.',
-            'הנשק יוחזר לנשקייה נקי ומשומן - ואחת לחודש יבצע בדיקת נשק.',
-            'החייל/ת ביצע/ה בוחן לנשק אישי ובוחן למק פורק.',
-            'הנשק ינופק באישור השלישות.',
-        ];
-
-        doc.setFontSize(12);
-        notes.forEach((line, i) => {
-            doc.text(`${mirrorHebrewSmart(line)} •`, pageWidth - margin, y + i * 8, {align: 'right'});
-        });
-
-        // Table with user info
-        y += notes.length * 8 + 15;
-        autoTable(doc, {
-            startY: y,
-            body: [[
-                mirrorHebrewSmart('שם מלא'),
-                mirrorHebrewSmart('מספר אישי'),
-                mirrorHebrewSmart('פלוגה')
-            ],
-                [
-                    mirrorHebrewSmart(row['שם_מלא'] || ''),
-                    mirrorHebrewSmart(row['מספר_אישי'] || ''),
-                    mirrorHebrewSmart(selectedSheet.name)
-                ]],
-            styles: {
-                font: 'NotoSansHebrew',
-                halign: 'right',
-            },
-            headStyles: {
-                halign: 'right',
-            },
-            margin: {left: margin, right: margin},
-        });
-
-
-        // Signature label
-        // @ts-ignore
-        y = doc.lastAutoTable.finalY + 10;
-        doc.setFontSize(12);
-        doc.text(mirrorHebrewSmart('חתימת החייל'), pageWidth / 2, y, {align: 'center'});
-
-        // Add signature image if available
-        // y += 5;
-        if (row['חתימה']) {
-            try {
-                doc.addImage(row['חתימה'], 'PNG', pageWidth / 2 - 40, y, 80, 50); // Bigger and centered
-            } catch (e) {
-                console.error('Error adding signature:', e);
-            }
-        }
-
-        // Table of all nonempty values (excluding keys we already used)
-        y += 40;
-
-        const kvPairs = Object.entries(row)
-            .filter(([key, val]) =>
-                val &&
-                !['חתימה', 'rowIndex', 'rowRealIndex', 'מסד', 'מספר_אישי', 'שם_מלא', 'פלאפון', 'זמן_חתימה'].includes(key)
-            )
-            .map(([key, val]) => {
-                if (key === 'סוג_נשק') {
-                    const weaponType = String(val).replace(/_/g, ' ');
-                    const serialNumber = row['מסד'] || '';
-                    return [
-                        mirrorHebrewSmart(String(serialNumber)),
-                        mirrorHebrewSmart(weaponType)
-                    ];
-                }
-
-                return [
-                    mirrorHebrewSmart(String(val)),
-                    mirrorHebrewSmart(String(key).replace(/_/g, ' '))
-                ];
-            });
-
-        autoTable(doc, {
-            startY: y,
-            body: [...[[mirrorHebrewSmart('מסד'), mirrorHebrewSmart('אמצעי')]], ...kvPairs],
-            styles: {font: 'NotoSansHebrew', halign: 'right'},
-            margin: {left: margin, right: margin},
-        });
-
-        // Save PDF
-        const filename = `${row['שם_מלא'] || 'משתמש'}_${row['מספר_אישי'] || 'טופס'}.pdf`;
-        doc.save(filename);
-    };
 
     const handleCreditSoldier = async (row: any) => {
 
@@ -441,7 +290,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                     "properties": {
                         "sheetId": selectedSheet.id,
                         "gridProperties": {
-                            "columnCount": sheetQueryData.values[0].length + 5
+                            "columnCount": sheetQueryData.values[0].length + 1
                         }
                     },
                     "fields": "gridProperties.columnCount"
@@ -544,21 +393,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         </button>
     );
 
-    const downloadedData = selectedRow && groupIndex === 0 && (
-        <button
-            className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
-            onClick={() => downloadData(selectedRow)}
-        >
-            {isCreditingInProgress ? (
-                <span className="flex items-center">
-                    מעבד...
-                    <span
-                        className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
-                </span>
-            ) : 'דף החתמה להורדה'}
-        </button>
-    );
-
     const addOpticToGroup = isGroupSheet() && !selectedRow && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
@@ -638,7 +472,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             <h2 className="text-xl font-semibold mb-4">{currentGroup.name}</h2>
 
             <TabsNavigation sheets={currentGroup.sheets} activeTabIndex={activeTabIndex} onTabChange={handleTabChange}
-                            creditButton={creditButton} downloadedData={downloadedData}
+                            creditButton={creditButton}
                             assignWeaponButton={assignWeaponButton} addWeaponOrOptic={addWeaponOrOptic}
                             addNewSerialWeaponOrOptic={addNewSerialWeaponOrOptic} addOpticToGroup={addOpticToGroup}
                 // showSoldierModal={showSoldierModal}
@@ -677,6 +511,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             {assignSoldier && (
                 <AssignWeapon
                     accessToken={accessToken}
+                    sheetName={selectedSheet.name}
                     formValues={formValues}
                     setFormValues={setFormValues}
                     onConfirm={handleConfirmNewSoldier}
@@ -764,7 +599,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                     <p className="font-bold">Error:</p>
                     <p>{error instanceof Error ? error.message : 'Failed to fetch sheet data'}</p>
                 </div>
-            ) : [ 'טבלת נשקיה'].includes(currentGroup.sheets[activeTabIndex].name) ? (
+            ) : [ 'טבלת נשקיה'].includes(selectedSheet.name) ? (
                 <SummaryComponent accessToken={accessToken}/>
 
             ) : sheetData.length > 0 || isCreditingInProgress ? (
