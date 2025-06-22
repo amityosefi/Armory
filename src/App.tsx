@@ -6,6 +6,7 @@ import SheetGroupPage from './components/SheetGroupPage'
 import NavBar from './components/NavBar'
 import { sheetGroups } from './constants'
 import './css/App.css';
+import SoldierCardPage from './components/SoldierCardPage'
 
 function App() {
   const [user, setUser] = useState<TokenResponse | null>(null)
@@ -29,6 +30,7 @@ function App() {
           {user ? (
             <>
               <Route path="/" element={<Navigate to="/group/0" replace />} />
+              <Route path="/sheet/:sheetName/soldier/:soldierIndex" element={<SoldierCardPage accessToken={user.access_token} />} />
               <Route path="/group/:groupId/sheet/:sheetIndex/row/:rowIndex/*" element={
                 <div className="w-full max-w-full md:px-4">
                   <NavBar 
