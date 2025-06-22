@@ -74,6 +74,29 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
     setShowModal(false);
   }
 
+  const handleGroupClick = (result: SearchResult) => {
+    const sheetsWithIndexes = sheetGroups.flatMap((group, groupIndex) =>
+        group.sheets.map((sheet, sheetIndex) => ({
+          ...sheet,
+          groupIndex,
+          sheetIndex,
+          sheetRange: sheet.range,
+        }))
+    );
+
+    const sheetWithIndexes = sheetsWithIndexes.find(sheet => `'${sheet.range}'` === result.sheetName);
+    if (!sheetWithIndexes) {
+      console.warn(`Sheet "${result.sheetName}" not found in "${sheetsWithIndexes}".`);
+      return;
+    }
+    console.log("hey")
+    if (sheetWithIndexes.groupIndex === 0)
+      navigate(`/group/${sheetWithIndexes.groupIndex}/sheet/${sheetWithIndexes.sheetIndex}/row/0`);
+    else
+      navigate(`/group/${sheetWithIndexes.groupIndex}/sheet/${sheetWithIndexes.sheetIndex}/row/0`);
+    setShowModal(false);
+  }
+
   return (
     <>
       {/* Search Bar */}
@@ -130,12 +153,13 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
                       <tr
                           key={idx}
                           className="border-t cursor-pointer hover:bg-gray-100"
-                          onClick={() => handleClick(result)}
                       >
-                        <td className="border px-2 py-1 break-words w-1/3 text-blue-700 hover:underline">
+                        <td className="border px-2 py-1 break-words w-1/3 text-blue-700 hover:underline"
+                            onClick={() => handleGroupClick(result)}>
                           {result.sheetName}
                         </td>
-                        <td className="border px-2 py-1 break-words w-2/3 text-blue-700 hover:underline">
+                        <td className="border px-2 py-1 break-words w-2/3 text-blue-700 hover:underline"
+                            onClick={() => handleClick(result)}>
                           {result.cellValue}
                         </td>
                       </tr>

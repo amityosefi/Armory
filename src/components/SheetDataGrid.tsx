@@ -236,10 +236,10 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     async function onClickedOptic(event: any): Promise<boolean> {
         // Redirect if first column is clicked
         if (event.colDef && event.colDef.field === columnDefs[0].field) {
-            navigate(`/sheet/${selectedSheet.range}/soldier/${event.rowIndex + 2}`);
+            navigate(`/sheet/${selectedSheet.range}/soldier/${event.data['rowRealIndex'] + 2}`);
             return false;
         }
-        if (!isGroupSheet() || ['סוג_נשק', 'שם_מלא', 'הערות'].includes(event.colDef.field)) { // @ts-ignore
+        if (!isGroupSheet() || ['סוג_נשק', 'שם_מלא', 'אמצעים' ,'הערות'].includes(event.colDef.field)) { // @ts-ignore
             return;
         }
         setEvent({
@@ -422,14 +422,14 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             msg = 'חתימה מול החטיבה שונתה ל' + event.newValue + ' מהערך הקודם ' + event.oldValue;
         else
             msg = "חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field + ': ' + event.newValue;
-        if (event.colDef.field === 'הערות' || event.colDef.field === 'שם_מלא' || event.colDef.field === 'חתימה') {
+        if (event.colDef.field === 'הערות') {
             const userEmail = localStorage.getItem('userEmail');
             const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
                 updates: [{
                     sheetId: selectedSheet.id,
                     rowIndex: event.rowIndex + 1,
-                    colIndex: columnDefs.findIndex(c => c.field === event.colDef.field),
+                    colIndex: incomingColumnDefs.findIndex(c => c.field === event.colDef.field),
                     value: event.newValue ?? ""
                 }],
                 appendSheetId: 1070971626,

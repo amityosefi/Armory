@@ -5,6 +5,7 @@ import Select from "react-select";
 
 interface AssignWeaponProps {
     accessToken: string;
+    sheetName: string;
     formValues: {
         fullName: string;
         personalNumber: number | any;
@@ -45,6 +46,7 @@ interface AssignWeaponProps {
 
 const AssignWeapon: React.FC<AssignWeaponProps> = ({
                                                        accessToken,
+                                                         sheetName,
                                                        formValues,
                                                        setFormValues,
                                                        onConfirm,
@@ -218,7 +220,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                 ref={modalRef} 
                 className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md my-4 sm:my-0 max-h-[90vh] overflow-y-auto"
             >
-                <h2 className="text-lg font-bold mb-4 text-right">החתמת חייל</h2>
+                <h2 className="text-lg font-bold mb-4 text-right">החתמת חייל - {sheetName} </h2>
                 <div className="space-y-4">
                     {/* Full Name */}
                     <div>
@@ -255,15 +257,16 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                             className="w-full border p-2 rounded text-right"
                             inputMode="numeric"
                             pattern="[0-9]*"
-                            value={formValues.phone?.toString() || ""}
+                            value={formValues.phone || ""}
                             onChange={(e) => {
                                 const value = e.target.value;
                                 if (/^\d*$/.test(value)) {
-                                    setFormValues((prev) => ({ ...prev, phone: Number(value) }));
+                                    setFormValues((prev) => ({ ...prev, phone: value }));
                                 }
                             }}
                         />
                     </div>
+
 
                     {/* Weapon Type */}
                     <div>
