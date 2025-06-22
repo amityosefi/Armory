@@ -16,7 +16,7 @@ interface SearchResult {
 
 const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
   const navigate = useNavigate();
-
+  
   const [searchText, setSearchText] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -58,21 +58,18 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
         ...sheet,
         groupIndex,
         sheetIndex,
-        sheetRange: sheet.range,
       }))
     );
 
     const sheetWithIndexes = sheetsWithIndexes.find(sheet => `'${sheet.range}'` === result.sheetName);
-    if (!sheetWithIndexes) {
-      console.warn(`Sheet "${result.sheetName}" not found in "${sheetsWithIndexes}".`);
-      return;
-    }
-    if (sheetWithIndexes.groupIndex === 0)
-      navigate(`/sheet/${sheetWithIndexes.sheetRange}/soldier/${result.rowIndex}`);
-    else
+    if (sheetWithIndexes) {
       navigate(`/group/${sheetWithIndexes.groupIndex}/sheet/${sheetWithIndexes.sheetIndex}/row/${result.rowIndex}`);
-    setShowModal(false);
-  }
+      setShowModal(false);
+    } else {
+      console.warn(`Sheet "${result.sheetName}" not found in "${sheetsWithIndexes}".`);
+    }
+  };
+
 
   const handleGroupClick = (result: SearchResult) => {
     const sheetsWithIndexes = sheetGroups.flatMap((group, groupIndex) =>
