@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { SheetGroup } from '../types';
 import GoogleSheetsService from '../services/GoogleSheetsService';
+import {sheetGroups} from "../constants";
+import groupNavigation from "./route/GroupNavigation";
 
 interface SearchBarProps {
   sheetGroups: SheetGroup[];
@@ -53,6 +55,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
   }, [showModal]);
 
   const handleClick = (result: SearchResult) => {
+    console.log(result.sheetName);
+    const sheetNameToUrl = result.sheetName.replace(/^'(.*)'$/, '$1');
     const sheetsWithIndexes = sheetGroups.flatMap((group, groupIndex) =>
       group.sheets.map((sheet, sheetIndex) => ({
         ...sheet,
@@ -63,7 +67,9 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
 
     const sheetWithIndexes = sheetsWithIndexes.find(sheet => `'${sheet.range}'` === result.sheetName);
     if (sheetWithIndexes) {
-      navigate(`/group/${sheetWithIndexes.groupIndex}/sheet/${sheetWithIndexes.sheetIndex}/row/${result.rowIndex}`);
+      // @ts-ignore
+      navigate(`/sheet/${sheetNameToUrl}/soldier/${result.rowIndex + 2}`);
+      // navigate(`/sheet/${selectedSheet.range}/soldier/${event.data['rowRealIndex'] + 2}`);
       setShowModal(false);
     } else {
       console.warn(`Sheet "${result.sheetName}" not found in "${sheetsWithIndexes}".`);
@@ -86,7 +92,6 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
       console.warn(`Sheet "${result.sheetName}" not found in "${sheetsWithIndexes}".`);
       return;
     }
-    console.log("hey")
     if (sheetWithIndexes.groupIndex === 0)
       navigate(`/group/${sheetWithIndexes.groupIndex}/sheet/${sheetWithIndexes.sheetIndex}/row/0`);
     else
