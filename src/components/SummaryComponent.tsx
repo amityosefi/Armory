@@ -167,9 +167,21 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                             count = body.filter((row: { [x: string]: string; }) => row[weaponColIndex] === type).length;
                         }
                     } else {
-                        const opticColIndex = headerRow.indexOf(type);
-                        if (opticColIndex !== -1) {
-                            count = body.filter((row: { [x: string]: string; }) => row[opticColIndex]?.trim()).length;
+                        console.log(type)
+                        if (["M5", "מפרו", "מארס"].includes(type)) {
+                            const opticColumnIndex = headerRow.indexOf('כוונת');
+                            if (opticColumnIndex !== -1) {
+                                count = body.filter((row: { [x: string]: string; }) =>
+                                    row[opticColumnIndex]?.trim() === type
+                                ).length;
+                            }
+                        } else {
+                            const opticColIndex = headerRow.indexOf(type);
+                            if (opticColIndex !== -1) {
+                                count = body.filter((row: {
+                                    [x: string]: string;
+                                }) => row[opticColIndex]?.trim()).length;
+                            }
                         }
                     }
 
@@ -247,7 +259,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 field: 'name',
                 pinned: 'right',
                 width: 130, // ✅ fixed width
-                cellStyle: { textAlign: 'right' },
+                cellStyle: {textAlign: 'right'},
                 headerClass: 'ag-right-aligned-header'
             },
             ...SHEETS.map(s => ({
@@ -255,7 +267,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 field: s.name,
                 type: 'numericColumn',
                 width: 85, // ✅ fixed width
-                cellStyle: { textAlign: 'center' },
+                cellStyle: {textAlign: 'center'},
                 headerClass: 'ag-right-aligned-header'
             })),
             {
@@ -263,7 +275,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 field: 'מנופק',
                 type: 'numericColumn',
                 width: 70,
-                cellStyle: { textAlign: 'center' },
+                cellStyle: {textAlign: 'center'},
                 headerClass: 'ag-right-aligned-header'
             },
             {
@@ -271,7 +283,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 field: 'במלאי',
                 type: 'numericColumn',
                 width: 70,
-                cellStyle: { textAlign: 'center' },
+                cellStyle: {textAlign: 'center'},
                 headerClass: 'ag-right-aligned-header'
             },
             {
@@ -279,7 +291,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 field: 'סה"כ',
                 type: 'numericColumn',
                 width: 70,
-                cellStyle: { textAlign: 'center', fontWeight: 'bold' },
+                cellStyle: {textAlign: 'center', fontWeight: 'bold'},
                 headerClass: 'ag-right-aligned-header'
             },
             {
@@ -288,7 +300,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 editable: true,
                 type: 'numericColumn',
                 width: 80,
-                cellStyle: { textAlign: 'center', backgroundColor: '#fff7d1' },
+                cellStyle: {textAlign: 'center', backgroundColor: '#fff7d1'},
                 headerClass: 'ag-right-aligned-header',
                 valueParser: (params) => Number(params.newValue) || 0,
             },
@@ -300,7 +312,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 valueGetter: (params) => {
                     const hatima = Number(params.data?.חתימה || 0);
                     const total = Number(params.data?.["סה\"כ"] || 0);
-                    return  total - hatima;
+                    return total - hatima;
                 },
                 cellStyle: (params) => {
                     const val = Number(params.value);
@@ -317,11 +329,10 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
     }, []);
 
 
-
     return (
         <div
             className="ag-theme-alpine"
-            style={{ height: '600px', width: '100%', direction: 'rtl' }}
+            style={{height: '600px', width: '100%', direction: 'rtl'}}
         >
             <AgGridReact<any>
                 rowData={rowData}
