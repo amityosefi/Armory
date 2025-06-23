@@ -300,7 +300,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 valueGetter: (params) => {
                     const hatima = Number(params.data?.חתימה || 0);
                     const total = Number(params.data?.["סה\"כ"] || 0);
-                    return hatima - total;
+                    return  total - hatima;
                 },
                 cellStyle: (params) => {
                     const val = Number(params.value);
@@ -321,7 +321,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
     return (
         <div
             className="ag-theme-alpine"
-            style={{ height: '600px', width: '100%', direction: 'rtl', overflowX: 'auto' }}
+            style={{ height: '600px', width: '100%', direction: 'rtl' }}
         >
             <AgGridReact<any>
                 rowData={rowData}
