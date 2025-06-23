@@ -135,6 +135,18 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
             enabled: !!accessToken
         }
     );
+    const {
+        data: i,
+    } = useGoogleSheetData(
+        {
+            accessToken,
+            range: "תקול לסדנא"
+        },
+        {
+            processData: false,
+            enabled: !!accessToken
+        }
+    );
 
     const allSheets = [a, b, c, d, e, f, g];
     const allSheetsNames = SHEETS.map(s => s.name);
@@ -167,7 +179,6 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                             count = body.filter((row: { [x: string]: string; }) => row[weaponColIndex] === type).length;
                         }
                     } else {
-                        console.log(type)
                         if (["M5", "מפרו", "מארס"].includes(type)) {
                             const opticColumnIndex = headerRow.indexOf('כוונת');
                             if (opticColumnIndex !== -1) {
@@ -202,7 +213,17 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 }
 
                 row['במלאי'] = stockCount;
-                row['סה"כ'] = total + stockCount;
+                row["תקול לסדנא"] = (() => {
+                    const tikulHeader = i?.values?.[0] || [];
+                    const tikulBody = i?.values?.slice(1) || [];
+                    const tikulIndex = tikulHeader.indexOf(type);
+
+                    if (tikulIndex === -1) return 0;
+
+                    return tikulBody.filter((r: any) => r[tikulIndex]?.trim()).length;
+                })();
+
+                row['סה"כ'] = total + stockCount + row["תקול לסדנא"];
 
                 row['חתימה'] = (() => {
                     const summarySheetHeader = h?.values?.[0] || [];
@@ -213,6 +234,16 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                     if (nameIndex === -1 || hatimaIndex === -1) return 0;
                     const matchedRow = summarySheetBody.find((r: { [x: string]: string; }) => r[nameIndex] === type);
                     return Number(matchedRow?.[hatimaIndex]) || 0;
+                })();
+
+                row["תקול לסדנא"] = (() => {
+                    const tikulHeader = i?.values?.[0] || [];
+                    const tikulBody = i?.values?.slice(1) || [];
+                    const tikulIndex = tikulHeader.indexOf(type);
+
+                    if (tikulIndex === -1) return 0;
+
+                    return tikulBody.filter((r: any) => r[tikulIndex]?.trim()).length;
                 })();
 
                 row['פער'] = row['חתימה'] - row['סה"כ'];
@@ -282,6 +313,14 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 headerName: 'במלאי',
                 field: 'במלאי',
                 type: 'numericColumn',
+                width: 72,
+                cellStyle: {textAlign: 'center'},
+                headerClass: 'ag-right-aligned-header'
+            },
+            {
+                headerName: 'סדנא',
+                field: 'תקול לסדנא',
+                type: 'numericColumn',
                 width: 70,
                 cellStyle: {textAlign: 'center'},
                 headerClass: 'ag-right-aligned-header'
@@ -309,11 +348,6 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 field: 'פער',
                 type: 'numericColumn',
                 width: 70,
-                valueGetter: (params) => {
-                    const hatima = Number(params.data?.חתימה || 0);
-                    const total = Number(params.data?.["סה\"כ"] || 0);
-                    return total - hatima;
-                },
                 cellStyle: (params) => {
                     const val = Number(params.value);
                     return {
@@ -341,7 +375,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 headerHeight={25}
                 defaultColDef={{
                     resizable: true,
-                    sortable: true,
+                    // sortable: true,
                 }}
             />
         </div>

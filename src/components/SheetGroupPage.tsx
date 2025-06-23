@@ -32,10 +32,13 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     const [selectedRow, setSelectedRow] = useState<any | null>(null);
     const [assignSoldier, setAssignSoldier] = useState(false);
     const [addOpticColumn, setAddOpticColumn] = useState(false);
+    const selectedSheet = currentGroup.sheets[activeTabIndex] || currentGroup.sheets[0];
+
     const [formValues, setFormValues] = useState({
         fullName: '',
         personalNumber: null,
         phone: null,
+        group: selectedSheet.id,
         weaponName: '',
         intentionName: '',
         serialNumber: '',
@@ -51,7 +54,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         rowIndex: number;
         colIndex: number
     } | null>(null);
-    const selectedSheet = currentGroup.sheets[activeTabIndex] || currentGroup.sheets[0];
     const encodedRange = selectedSheet ? encodeURIComponent(selectedSheet.range) : '';
     const isGroupSheet = () => ['א', 'ב', 'ג', 'מסייעת', 'מכלול', 'פלסם', 'אלון'].includes(currentGroup.sheets[groupIndex]?.range);
 
@@ -134,13 +136,24 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         navigate(`/group/${groupId}/sheet/${newSheetIndex}/row/0`);
     };
 
+    const getSheetNameById = (id: number) => {
+        for (const group of sheetGroups) {
+            const sheet = group.sheets.find(sheet => sheet.id === id);
+            if (sheet) return sheet.name;
+        }
+        return undefined; // or 'Unknown'
+    };
+
     const handleConfirmNewSoldier = async () => {
-        let msg;
+        let msg = 'החייל ' + formValues.fullName;
         setShowDialog(false);
+        if (formValues.weaponName){
+            msg += ' הוחתם על נשק ' + formValues.weaponName + ' מסד ' + formValues.serialNumber + ' ';
+        }
         if (formValues.intentionName)
-            msg = `החייל ${formValues.fullName} הוחתם על נשק ${formValues.weaponName} עם כוונת ${formValues.intentionName} מסד ${formValues.serialNumber} ${selectedSheet.name}`;
+            msg += ` עם כוונת ${formValues.intentionName} `;
         else
-            msg = `החייל ${formValues.fullName} הוחתם על נשק ${formValues.weaponName} בלי כוונת מסד ${formValues.serialNumber} ${selectedSheet.name}מ`;
+            msg += ' ' + getSheetNameById(formValues.group);
         const userEmail = localStorage.getItem('userEmail');
         let optic = formValues.intentionName;
         const update = [
@@ -169,7 +182,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             updates: update,
             appendSheetId: 1070971626,
             appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail || '']],
-            secondAppendSheetId: selectedSheet.id,
+            secondAppendSheetId: formValues.group,
             secondAppendValues: [[formValues.fullName, String(formValues.personalNumber), String(formValues.phone), formValues.signature, new Date().toLocaleString('he-IL'), formValues.weaponName, optic, formValues.serialNumber]]
         });
 
@@ -181,6 +194,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             fullName: '',
             personalNumber: null,
             phone: null,
+            group: selectedSheet.id,
             weaponName: '',
             intentionName: '',
             serialNumber: '',
@@ -477,22 +491,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                             addNewSerialWeaponOrOptic={addNewSerialWeaponOrOptic} addOpticToGroup={addOpticToGroup}
                 // showSoldierModal={showSoldierModal}
             />
-            {/*{openSoldierCard && (*/}
-            {/*    <SoldierCardPage*/}
-            {/*        row={selectedRow}*/}
-            {/*        onCancel={() => setOpenSoldierCard(false)}*/}
-            {/*        creditSoldier={async () => {*/}
-            {/*            // handleConfirmAction(soldierRowData);*/}
-            {/*            await handleCreditSoldier(selectedRow);*/}
-            {/*            setOpenSoldierCard(false);*/}
-            {/*        }}*/}
-            {/*        downloadedData={() => {*/}
-            {/*            downloadData(selectedRow);*/}
-            {/*        }}*/}
-            {/*        sheetName={selectedSheet.name}*/}
-            {/*    />*/}
-            {/*)}*/}
-
 
             {addOpticColumn && (
                 <AddOpticToGroupColumn
@@ -520,6 +518,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                             fullName: '',
                             personalNumber: null,
                             phone: null,
+                            group: selectedSheet.id,
                             weaponName: '',
                             intentionName: '',
                             serialNumber: '',
@@ -574,6 +573,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                             fullName: '',
                             personalNumber: null,
                             phone: null,
+                            group: selectedSheet.id,
                             weaponName: '',
                             intentionName: '',
                             serialNumber: '',

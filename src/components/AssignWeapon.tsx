@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, {useEffect, useState, useRef} from "react";
 import SignatureCanvas from "react-signature-canvas";
-import { useGoogleSheetData } from "./hooks/useGoogleSheetData";
+import {useGoogleSheetData} from "./hooks/useGoogleSheetData";
 import Select from "react-select";
+import {sheetGroups} from "../constants";
 
 interface AssignWeaponProps {
     accessToken: string;
@@ -10,6 +11,7 @@ interface AssignWeaponProps {
         fullName: string;
         personalNumber: number | any;
         phone: number | any;
+        group: number,
         weaponName: string;
         intentionName: string;
         serialNumber: string;
@@ -20,6 +22,7 @@ interface AssignWeaponProps {
             fullName: string;
             personalNumber: number | any;
             phone: number | any;
+            group: number,
             weaponName: string;
             intentionName: string;
             serialNumber: string;
@@ -46,7 +49,7 @@ interface AssignWeaponProps {
 
 const AssignWeapon: React.FC<AssignWeaponProps> = ({
                                                        accessToken,
-                                                         sheetName,
+                                                       sheetName,
                                                        formValues,
                                                        setFormValues,
                                                        onConfirm,
@@ -56,7 +59,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                                                        setShowDialog,
                                                        setAssignSoldier,
                                                    }) => {
-    const { data: opticsData } = useGoogleSheetData(
+    const {data: opticsData} = useGoogleSheetData(
         {
             accessToken,
             range: "מלאי אופטיקה",
@@ -67,7 +70,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
         }
     );
 
-    const { data: weaponData } = useGoogleSheetData(
+    const {data: weaponData} = useGoogleSheetData(
         {
             accessToken,
             range: "מלאי נשקיה",
@@ -78,7 +81,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
         }
     );
 
-    const { data: peopleData } = useGoogleSheetData(
+    const {data: peopleData} = useGoogleSheetData(
         {
             accessToken,
             range: "דוח1",
@@ -88,6 +91,8 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
             enabled: !!accessToken,
         }
     );
+
+    const plugaSheets = sheetGroups.find(group => group.name === "פלוגות")?.sheets || [];
 
     const [serialNumbers, setSerialNumbers] = useState<
         { value: string; rowIndex: number; colIndex: number }[]
@@ -103,7 +108,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
     const saveSignature = () => {
         if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
             const dataURL = sigPadRef.current.getCanvas().toDataURL("image/png");
-            setFormValues((prev) => ({ ...prev, signature: dataURL }));
+            setFormValues((prev) => ({...prev, signature: dataURL}));
         }
     };
 
@@ -125,7 +130,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
 
         try {
             const headers = opticsData.values[0];
-            const validTypes = ["M5", 'מארס' ,"מפרו"];
+            const validTypes = ["M5", 'מארס', "מפרו"];
             const newOpticOptions: { label: string; rowIndex: number; colIndex: number }[] = [];
 
             validTypes.forEach((type) => {
@@ -177,15 +182,13 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
 
     const clearSignature = () => {
         sigPadRef.current?.clear();
-        setFormValues((prev) => ({ ...prev, signature: "" }));
+        setFormValues((prev) => ({...prev, signature: ""}));
     };
 
     const isFormValid = () =>
         formValues.fullName.trim() &&
-        // formValues.weaponName.trim() &&
         (formValues.personalNumber !== undefined && formValues.personalNumber !== null) &&
         (formValues.phone !== undefined && formValues.phone !== null) &&
-        // formValues.serialNumber.trim() &&
         formValues.signature.trim();
 
     const formatPhone = (raw: string): string => {
@@ -214,13 +217,15 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
         }
     };
 
+    // @ts-ignore
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start sm:items-center justify-center z-50 overflow-y-auto">
-            <div 
-                ref={modalRef} 
+        <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-start sm:items-center justify-center z-50 overflow-y-auto">
+            <div
+                ref={modalRef}
                 className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md my-4 sm:my-0 max-h-[90vh] overflow-y-auto"
             >
-                <h2 className="text-lg font-bold mb-4 text-right">החתמת חייל - {sheetName} </h2>
+                <h2 className="text-lg font-bold mb-4 text-right">החתמת חייל</h2>
                 <div className="space-y-4">
                     {/* Full Name */}
                     <div>
@@ -230,7 +235,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                             className="w-full border p-2 rounded text-right"
                             value={formValues.fullName}
                             onChange={(e) =>
-                                setFormValues((prev) => ({ ...prev, fullName: e.target.value }))
+                                setFormValues((prev) => ({...prev, fullName: e.target.value}))
                             }
                         />
                     </div>
@@ -244,7 +249,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                             value={formValues.personalNumber?.toString() || ""}
                             onChange={(e) => {
                                 const value = e.target.value.replace(/\D/g, "");
-                                setFormValues((prev) => ({ ...prev, personalNumber: Number(value) }));
+                                setFormValues((prev) => ({...prev, personalNumber: Number(value)}));
                             }}
                         />
                     </div>
@@ -261,10 +266,27 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                             onChange={(e) => {
                                 const value = e.target.value;
                                 if (/^\d*$/.test(value)) {
-                                    setFormValues((prev) => ({ ...prev, phone: value }));
+                                    setFormValues((prev) => ({...prev, phone: value}));
                                 }
                             }}
                         />
+                    </div>
+
+                    {/* Group */}
+                    <div>
+                        <label className="block text-right font-medium">בחר פלוגה</label>
+                        <select
+                            className="w-full border p-2 rounded text-right"
+                            value={formValues.group}
+                            onChange={(e) => setFormValues({...formValues, group: Number(e.target.value)})}
+                        >
+                            <option value={0} disabled>בחר פלוגה</option>
+                            {plugaSheets.map(sheet => (
+                                <option key={sheet.id} value={sheet.id}>
+                                    {sheet.name}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
 
@@ -275,7 +297,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                             className="w-full border p-2 rounded text-right"
                             value={formValues.weaponName}
                             onChange={(e) =>
-                                setFormValues((prev) => ({ ...prev, weaponName: e.target.value, serialNumber: "" }))
+                                setFormValues((prev) => ({...prev, weaponName: e.target.value, serialNumber: ""}))
                             }
                         >
                             <option value="">בחר סוג נשק</option>
@@ -291,10 +313,10 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                         <label className="block text-right font-medium">מספר סידורי</label>
                         <Select
                             className="text-right"
-                            options={serialNumbers.map((s) => ({ value: s.value, label: s.value }))}
+                            options={serialNumbers.map((s) => ({value: s.value, label: s.value}))}
                             value={
                                 serialNumbers.find((s) => s.value === formValues.serialNumber)
-                                    ? { value: formValues.serialNumber, label: formValues.serialNumber }
+                                    ? {value: formValues.serialNumber, label: formValues.serialNumber}
                                     : null
                             }
                             onChange={(selectedOption) => {
@@ -303,10 +325,10 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                                         (s) => s.value === selectedOption.value
                                     ) || null;
                                     setSelectedSerialInfo(selected);
-                                    setFormValues((prev) => ({ ...prev, serialNumber: selectedOption.value }));
+                                    setFormValues((prev) => ({...prev, serialNumber: selectedOption.value}));
                                 } else {
                                     setSelectedSerialInfo(null);
-                                    setFormValues((prev) => ({ ...prev, serialNumber: "" }));
+                                    setFormValues((prev) => ({...prev, serialNumber: ""}));
                                 }
                             }}
                             isClearable
@@ -325,13 +347,13 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                             }))}
                             value={
                                 opticOptions.find((s) => s.label === formValues.intentionName)
-                                    ? { value: formValues.intentionName, label: formValues.intentionName }
+                                    ? {value: formValues.intentionName, label: formValues.intentionName}
                                     : null
                             }
                             onChange={(selectedOption) => {
                                 if (!selectedOption) {
                                     setSelectedOptic(null);
-                                    setFormValues((prev) => ({ ...prev, intentionName: "" }));
+                                    setFormValues((prev) => ({...prev, intentionName: ""}));
                                     return;
                                 }
 
@@ -369,7 +391,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                                 width: 300,
                                 height: 150,
                                 className: "border border-gray-300 rounded",
-                                style: { direction: "ltr" },
+                                style: {direction: "ltr"},
                             }}
                             clearOnResize={false}
                             backgroundColor="white"
@@ -384,7 +406,6 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                             </button>
                         </div>
                     </div>
-
 
 
                     {/* Buttons */}
