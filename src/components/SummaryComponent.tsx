@@ -313,7 +313,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 headerName: 'במלאי',
                 field: 'במלאי',
                 type: 'numericColumn',
-                width: 70,
+                width: 72,
                 cellStyle: {textAlign: 'center'},
                 headerClass: 'ag-right-aligned-header'
             },
@@ -375,7 +375,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 headerHeight={25}
                 defaultColDef={{
                     resizable: true,
-                    sortable: true,
+                    // sortable: true,
                 }}
             />
         </div>
