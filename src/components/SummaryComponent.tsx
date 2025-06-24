@@ -246,7 +246,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                     return tikulBody.filter((r: any) => r[tikulIndex]?.trim()).length;
                 })();
 
-                row['פער'] = row['חתימה'] - row['סה"כ'];
+                row['פער'] = row['סה"כ'] - row['חתימה'];
 
 
                 result.push(row);
