@@ -145,7 +145,7 @@ export const creditSoldier = async (
     }
     
     // PART 3: Remove the soldier from the soldier sheet
-    if (selectedRow.rowIndex !== -1) {
+    if (selectedRow.rowRealIndex !== -1) {
       // Find the sheet ID for the current sheet
       const sheetInfo = sheets.find(item => item.sheet.range === sheetName);
       if (!sheetInfo || !sheetInfo.sheet.id) {
@@ -154,7 +154,7 @@ export const creditSoldier = async (
       }
       
       const sheetId = sheetInfo.sheet.id;
-      const rowIndexToRemove = selectedRow.rowIndex;
+      const rowIndexToRemove = selectedRow.rowRealIndex;
       
       // Add request to remove row
       batchRequests.push({

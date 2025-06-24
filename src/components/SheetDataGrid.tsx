@@ -33,7 +33,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
     // @ts-ignore
     const {
-        data: opticsData, refetch: refetchOpticData,
+        data: opticsData
     } = useGoogleSheetData(
         {
             accessToken,
@@ -47,7 +47,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     );
 
     const {
-        data: weaponData, refetch: refetchweaponData
+        data: weaponData
     } = useGoogleSheetData(
         {
             accessToken,
@@ -316,8 +316,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             setShowMessage(true);
             setIsSuccess(response);
             setMessage(response ? msg : ` בעיה בזיכוי ${event.colName}`);
-            refetchOpticData();
-            refetchweaponData();
             refetch();
             if (!response) {
                 isRevertingNameOrComment.current = true;
