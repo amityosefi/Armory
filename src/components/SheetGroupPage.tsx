@@ -372,7 +372,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             colIndex: rowCol.col, // need to change
             value: newSerialWeaponOrOpticName
         }];
-        const msg = 'ל' + selectedSheet.name + ' נוסף צ חדש: ' + newSerialWeaponOrOpticName + 'תחת' + chosenWeaponOrOptic;
+        const msg = 'ל' + selectedSheet.name + ' נוסף צ חדש: ' + newSerialWeaponOrOpticName + ' תחת ' + chosenWeaponOrOptic;
         const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
                 updates: updates,

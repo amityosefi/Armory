@@ -111,10 +111,7 @@ const PromptNewSerialWeaponOrOptic: React.FC<promptNewSerialWeaponOrOpticProps> 
                             pattern="[0-9]*"
                             value={newSerialWeaponOrOpticName}
                             onChange={(e) => {
-                                const value = e.target.value;
-                                if (/^\d*$/.test(value)) {
-                                    setNewSerialWeaponOrOpticName ? setNewSerialWeaponOrOpticName(e.target.value) : ''
-                                }
+                                setNewSerialWeaponOrOpticName ? setNewSerialWeaponOrOpticName(e.target.value) : ''
                             }
                             }
                         />
