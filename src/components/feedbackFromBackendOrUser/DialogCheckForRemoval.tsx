@@ -1,12 +1,13 @@
 import React, { useEffect, useRef } from "react";
 
 interface ConfirmDialogProps {
+    isGroupSheet: number;
     clickedCellInfo: { colName: string; value: string } | null;
     onConfirm: () => void;
     onCancel: () => void;
 }
 
-const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ clickedCellInfo, onConfirm, onCancel }) => {
+const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isGroupSheet, clickedCellInfo, onConfirm, onCancel }) => {
     const dialogRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -39,16 +40,17 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ clickedCellInfo, onConfir
                 </button>
 
                 <p className="mb-4 text-gray-800">
-                    האם אתה בטוח שאתה רוצה לזכות את האמצעי
+                    האם אתה בטוח שאתה רוצה
+                    {isGroupSheet === 0 ? ' לזכות את האמצעי ' : isGroupSheet === 1 ? ' להעביר לתקול לסדנא את האמצעי ' : 'להעביר למלאי את האמצעי' }
                     <strong> {clickedCellInfo.colName} </strong>
-                    <strong>{clickedCellInfo.value}</strong>?
+                    <strong> {clickedCellInfo.value} </strong>?
                 </p>
                 <div className="flex justify-around mt-4">
                     <button
                         className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
                         onClick={onConfirm}
                     >
-                        כן, לזכות את האמצעי
+                        {isGroupSheet === 0 ? 'כן, לזכות את האמצעי' : isGroupSheet === 1 ? 'להעביר לתקול לסדנא' : 'להעביר למלאי'}
                     </button>
                     <button
                         className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"

@@ -1,7 +1,12 @@
 import {DEFAULT_SPREADSHEET_ID} from "../constants";
 import { sheetGroups } from "../constants";
 
-
+type SheetData = {
+    title: string;
+    data: {
+        rowData: any[];
+    }[];
+};
 
 class GoogleSheetsService {
 
@@ -30,6 +35,38 @@ class GoogleSheetsService {
             return false;
         }
     }
+
+
+
+    static async fetchAllSheetData(
+        accessToken: string
+    ): Promise<SheetData[]> {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}?includeGridData=true`;
+        const response = await fetch(url, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch spreadsheet: ${response.status}`);
+        }
+        console.log('Fetching all sheets data...4');
+        const json = await response.json();
+        console.log('json');
+
+        if (!json.sheets || !Array.isArray(json.sheets)) {
+            throw new Error("Invalid sheets data");
+        }
+
+        const result: SheetData[] = json.sheets.map((sheet: any) => ({
+            title: sheet.properties.title,
+            data: sheet.data || [],
+        }));
+
+        return result;
+    }
+
 
 
 

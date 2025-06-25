@@ -33,7 +33,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
     // @ts-ignore
     const {
-        data: opticsData
+        data: opticsData, refetch: refetchOpticsData
     } = useGoogleSheetData(
         {
             accessToken,
@@ -47,7 +47,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     );
 
     const {
-        data: weaponData
+        data: weaponData, refetch: refetchWeaponData
     } = useGoogleSheetData(
         {
             accessToken,
@@ -59,7 +59,19 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             enabled: !!accessToken
         }
     );
-
+    const {
+        data: sandaData, refetch: refetchSandaData
+    } = useGoogleSheetData(
+        {
+            accessToken,
+            range: "תקול לסדנא"
+        },
+        {
+            // Don't process data here, we'll do it with custom logic below
+            processData: false,
+            enabled: !!accessToken
+        }
+    );
 
     const [dropdownOptions, setDropdownOptions] = useState<{ rowIndex: number, colIndex: number, value: string }[]>([]);
     const [dropdownOptionsWeapon, setDropdownOptionsWeapon] = useState<{ value: string }[]>([]);
@@ -101,11 +113,22 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         };
     }, [showComboBox]);
 
+    function isStockSheet() {
+        return ['מלאי אופטיקה','תקול לסדנא', 'מלאי נשקיה'].includes(selectedSheet.range);
+    }
+
     const columnDefs = incomingColumnDefs.map(col => {
         const hoverExcludedFields = ['סוג_נשק', 'שם_מלא', 'הערות'];
         const shouldEnableHover = !hoverExcludedFields.includes(col.field);
 
-        const isPaarColumn = col.field === 'פער';
+        const columnWidths: Record<string, number> = {
+            'שם_מלא': 150,
+            'הודעה': 500,
+            'זמן': 170,
+            'שם_משתמש': 200,
+        };
+
+        const width = columnWidths[col.field] ?? 150;
 
         return {
             ...col,
@@ -119,17 +142,11 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             cellEditorParams: ['חתימה','הערות', 'שם_מלא'].includes(col.field)
                 ? { maxLength: 100 }
                 : undefined,
-            cellClass: shouldEnableHover && isGroupSheet() ? 'hover-enabled' : undefined,
-            cellClassRules: isPaarColumn
-                ? {
-                    'text-green-600 font-bold': (params: { value: any; }) => Number(params.value) > 0,
-                    'text-red-600 font-bold': (params: { value: any; }) => Number(params.value) < 0,
-                }
-                : undefined,
+            cellClass: shouldEnableHover && isGroupSheet() || isStockSheet() ? 'hover-enabled' : undefined,
             hide:
                 (col.field === 'חתימה' && selectedSheet.name !== 'טבלת נשקיה') ||
                 ['זמן_חתימה', 'פלאפון', 'מספר_אישי'].includes(col.field),
-            width: col.field === 'שם_מלא' ? 150 : 150,
+            width: width,
         };
     });
 
@@ -177,10 +194,12 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
     // @ts-ignore
     async function handleEmptyCellClicked(event: any): Promise<boolean> {
-        let col = event.colDef.field;
-        col = col.replace(/_/g, ' '); // Remove underscores for matching
+        if (isStockSheet()) {
+            // @ts-ignore
+            return;
+        }
         let uniqueOptions;
-        if (event.colDef.field === 'כוונת') {
+        if (event.colName === 'כוונת') {
             const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(opticsData.values, 'מפרו');
             const valuesForAssign2 = GoogleSheetsService.findValuesUnderHeader(opticsData.values, 'M5');
             const valuesForAssign3 = GoogleSheetsService.findValuesUnderHeader(opticsData.values, 'מארס');
@@ -202,7 +221,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             });
             uniqueOptions = Array.from(uniqueOptionsMap.values());
             // feel here the missing input
-        } else if (col === 'מסד') {
+        } else if (event.colName === 'מסד') {
             const headers = weaponData.values[0];
             const headerOptions = headers.map((h: any) => ({value: h}));
             setDropdownOptionsWeapon(headerOptions)
@@ -215,7 +234,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
         } else {
             // @ts-ignore
-            const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(opticsData.values, col);
+            const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(opticsData.values, getHeaderNameByField(event.colName));
             const uniqueOptionsMap = new Map<string, { rowIndex: number, colIndex: number, value: string }>();
             valuesForAssign.forEach(item => {
                 if (!uniqueOptionsMap.has(item.value)) {
@@ -232,30 +251,36 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
     }
 
+    function getHeaderNameByField(field: string): string {
+        const match = columnDefs.find(col => col.field === field);
+        return match.headerName;
+    }
+
     // @ts-ignore
-    async function onClickedOptic(event: any): Promise<boolean> {
+    async function onClickedOptic(event1: any): Promise<boolean> {
         // Redirect if first column is clicked
-        if (event.colDef && event.colDef.field === columnDefs[0].field) {
-            navigate(`/sheet/${selectedSheet.range}/soldier/${event.data['rowRealIndex'] + 2}`);
+        if (!isStockSheet() && selectedSheet.range !== 'תיעוד' && event1.colDef && event1.colDef.field === columnDefs[0].field) {
+            navigate(`/sheet/${selectedSheet.range}/soldier/${event1.data['rowRealIndex'] + 2}`);
             return false;
         }
-        if (!isGroupSheet() || ['סוג_נשק', 'שם_מלא', 'אמצעים' ,'הערות'].includes(event.colDef.field)) { // @ts-ignore
+        if (!isGroupSheet() && !isStockSheet() || ['סוג_נשק', 'שם_מלא', 'אמצעים' ,'הערות'].includes(event1.colDef.field)) { // @ts-ignore
             return;
         }
         setEvent({
-            rowIndex: event.data.rowRealIndex,
-            colName: event.colDef.field,
-            value: event.value,
-            oldValue: event.oldValue,
-            row: event.data,
-            colIndex: event.column
+            rowIndex: event1.data.rowRealIndex,
+            colName: event1.colDef.field,
+            value: event1.value,
+            oldValue: event1.oldValue,
+            row: event1.data,
+            colIndex: event1.column
         });
-        if (event.value !== undefined && event.value !== null && event.value !== '') {
+
+        if (event1.value !== undefined && event1.value !== null && event1.value !== '') {
             // @ts-ignore
-            if (event.colDef.field === 'כוונת') {
+            if (event1.colDef.field === 'כוונת') {
                 // @ts-ignore
                 setEvent((prev) => ({...prev, value: "1", colName: prev?.row['כוונת']}));
-            } else if (event.colDef.field === 'מסד') {
+            } else if (event1.colDef.field === 'מסד') {
                 // @ts-ignore
                 setEvent((prev) => ({...prev, colName: prev?.row['סוג_נשק']}));
             }
@@ -270,18 +295,18 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         setIsLoading(true);
         if (event) {
             const userEmail = localStorage.getItem('userEmail');
-            const msg = event.row["שם_מלא"] + " זיכה " + event.colName + " " + event.value + " " + selectedSheet.name;
+            const msg = event.row["שם_מלא"] + " זיכה " + getHeaderNameByField(event.colName) + " " + event.value + " " + selectedSheet.name;
             const columnFields = columnDefs.map(col => col.field);
             let rowCol;
             let colIndex;
             let sheetid;
             let anotherUpdate;
             if (columnFields.includes(event.colName) || event.colName === "M5" || event.colName === "מפרו" || event.colName === "מארס") {
-                rowCol = GoogleSheetsService.findInsertIndex(opticsData.values, event.colName.replace("_", ' '));
+                rowCol = GoogleSheetsService.findInsertIndex(opticsData.values, getHeaderNameByField(event.colName));
                 colIndex = event.colName === "M5" || event.colName === "מפרו" || event.colName === 'מארס' ? 'כוונת' : event.colName;
                 sheetid = 1158402644;
             } else {
-                rowCol = GoogleSheetsService.findInsertIndex(weaponData.values, event.colName);
+                rowCol = GoogleSheetsService.findInsertIndex(weaponData.values, getHeaderNameByField(event.colName));
                 colIndex = 'מסד';
                 sheetid = 262055601;
                 anotherUpdate = {
@@ -317,6 +342,8 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             setIsSuccess(response);
             setMessage(response ? msg : ` בעיה בזיכוי ${event.colName}`);
             refetch();
+            refetchOpticsData();
+            refetchWeaponData();
             if (!response) {
                 isRevertingNameOrComment.current = true;
             }
@@ -340,7 +367,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         const firstUpdate = {
             sheetId: selectedSheet.id,
             rowIndex: event.rowIndex + 1,
-            colIndex: columnDefs.findIndex(c => c.field === event.colName),
+            colIndex: columnDefs.findIndex(c => c.headerName === getHeaderNameByField(event.colName)),
             value: option.value
         };
         updates.push(firstUpdate)
@@ -348,7 +375,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         let msg;
         let anotherUpdate;
         if (event.colName == 'מסד') {
-            msg = `הנשק ${event.colName} ${option.value} הוחתם בהצלחה לחייל ${event.row["שם_מלא"]} ` + " " + selectedSheet.name;
+            msg = `הנשק ${getHeaderNameByField(event.colName)} ${option.value} הוחתם בהצלחה לחייל ${event.row["שם_מלא"]} ` + " " + selectedSheet.name;
             anotherUpdate = {
                 sheetId: 262055601,
                 rowIndex: option.rowIndex,
@@ -389,6 +416,8 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         setIsSuccess(response);
         setMessage(response ? msg : ` בעיה בהחתמת האמרל ${event.colName}`);
         refetch();
+        refetchOpticsData();
+        refetchWeaponData();
         setIsLoading(false);
     }
 
@@ -417,7 +446,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         }
         let msg = '';
         if (selectedSheet.name === 'טבלת נשקיה')
-            msg = 'חתימה מול החטיבה שונתה ל' + event.newValue + ' מהערך הקודם ' + event.oldValue;
+            msg = 'חתימה מול החטיבה שונתה ל' + event.newValue;
         else
             msg = "חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field + ': ' + event.newValue;
         if (event.colDef.field === 'הערות') {
@@ -445,6 +474,98 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             }
         }
 
+    }
+
+    async function handleConfirmOpticSadna() {
+        setShowConfirmDialog(false);
+        setIsLoading(true);
+        if (event) {
+            const userEmail = localStorage.getItem('userEmail');
+            const msg = event.colName + " " + event.value + " הועבר לתקול לסדנא מ" + selectedSheet.name;
+
+            const rowCol = GoogleSheetsService.findInsertIndex(sandaData.values, event.colName);
+            console.log(rowCol);
+            const update = [
+                {
+                    sheetId: 1689612813,
+                    rowIndex: rowCol.row,
+                    colIndex: rowCol.col,
+                    value: event.value
+                },
+                {
+                    sheetId: selectedSheet.id,
+                    rowIndex: event.rowIndex + 1,
+                    colIndex: columnDefs.findIndex(col => col.field === event.colName),
+                    value: ""
+                }];
+
+            const response = await GoogleSheetsService.updateCalls({
+                accessToken: accessToken,
+                updates: update,
+                appendSheetId: 1070971626,
+                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
+            });
+            setShowMessage(true);
+            setIsSuccess(response);
+            setMessage(response ? msg : `בעיה בהעברה לתקול לסדנא`);
+            refetch();
+            refetchOpticsData();
+            refetchWeaponData();
+            refetchSandaData();
+            if (!response) {
+                isRevertingNameOrComment.current = true;
+            }
+            setIsLoading(false);
+        }
+    }
+
+    async function handleConfirmOpticStock() {
+        setShowConfirmDialog(false);
+        setIsLoading(true);
+        if (event) {
+            const userEmail = localStorage.getItem('userEmail');
+            let sheetTofireName = 'מלאי אופטיקה';
+            let sheetTofireId = 1158402644;
+            if (weaponData.values[0].includes(event.colName)) {
+                sheetTofireName = 'מלאי נשקיה';
+                sheetTofireId =262055601;
+            }
+            const msg = event.colName + " " + event.value + " הועבר מתקול לסדנא ל" + sheetTofireName;
+
+            const rowCol = GoogleSheetsService.findInsertIndex(sandaData.values, event.colName);
+            console.log(rowCol);
+            const update = [
+                {
+                    sheetId: sheetTofireId,
+                    rowIndex: rowCol.row,
+                    colIndex: rowCol.col,
+                    value: event.value
+                },
+                {
+                    sheetId: 1689612813,
+                    rowIndex: event.rowIndex + 1,
+                    colIndex: columnDefs.findIndex(col => col.field === event.colName),
+                    value: ""
+                }];
+
+            const response = await GoogleSheetsService.updateCalls({
+                accessToken: accessToken,
+                updates: update,
+                appendSheetId: 1070971626,
+                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
+            });
+            setShowMessage(true);
+            setIsSuccess(response);
+            setMessage(response ? msg : `בעיה בהעברה למלאי`);
+            refetch();
+            refetchOpticsData();
+            refetchWeaponData();
+            refetchSandaData();
+            if (!response) {
+                isRevertingNameOrComment.current = true;
+            }
+            setIsLoading(false);
+        }
     }
 
     // @ts-ignore
@@ -588,7 +709,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                             return params.node.rowIndex % 2 === 0 ? 'ag-row-even' : 'ag-row-odd';
                         }}
                         columnDefs={columnDefs}
-                        rowData={rowData}
+                        rowData={selectedSheet.range === 'תיעוד' ? [...rowData].reverse() : rowData}
                         rowHeight={24}         // 👈 Shrink row height
                         headerHeight={28}
                         stopEditingWhenCellsLoseFocus={true}
@@ -603,8 +724,8 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                         rowSelection="single"
                         isRowSelectable={() => isGroupSheet()}
                         suppressRowClickSelection={true}
-                        onCellClicked={(event) => {
-                            onClickedOptic(event);
+                        onCellClicked={(event1) => {
+                            onClickedOptic(event1);
                         }}
                         onCellValueChanged={async (event) => {
                             await changeNameOrComment(event);
@@ -634,8 +755,9 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     {showConfirmDialog && event && (
                         <div>
                             <ConfirmDialog
+                                isGroupSheet={isGroupSheet() ? 0 : selectedSheet.range === 'תקול לסדנא' ? 2 : 1}
                                 clickedCellInfo={event}
-                                onConfirm={() => handleConfirmOpticCredit()}
+                                onConfirm={() => isGroupSheet() ? handleConfirmOpticCredit() : selectedSheet.range === 'תקול לסדנא' ? handleConfirmOpticStock() : handleConfirmOpticSadna()}
                                 onCancel={() => setShowConfirmDialog(false)}
                             />
                         </div>

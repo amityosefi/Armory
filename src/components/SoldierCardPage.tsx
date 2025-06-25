@@ -18,7 +18,7 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
 
     // @ts-ignore
     const {
-        data: opticsData,
+        data: opticsData, refetch: refetchOptics
     } = useGoogleSheetData(
         {
             accessToken,
@@ -112,9 +112,9 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
             .find(sheet => sheet.range === sheetName)?.id;
         let msg = '';
         if (sheetName === 'טבלת נשקיה')
-            msg = 'חתימה מול החטיבה שונתה ל' + val + ' מהערך הקודם ' + row[fieldName];
+            msg = 'חתימה מול החטיבה שונתה ל' + val ;
         else
-            msg = "חייל " + row["שם מלא"] + " שינה " + fieldName + ': ' + val + ' מהערך הקודם ' + row[fieldName];
+            msg = "חייל " + row["שם מלא"] + " שינה " + fieldName + ': ' + val ;
         if (fieldName === 'הערות' || fieldName === 'שם מלא' || fieldName === 'פלאפון' || fieldName === 'מספר אישי') {
             const userEmail = localStorage.getItem('userEmail');
             // Find colIndex dynamically from headers
@@ -392,6 +392,8 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
         setShowMessage(true);
         setIsSuccess(response);
         setMessage(response ? msg : `בעיה בהחתמת האמרל`);
+        refetch();
+        refetchOptics();
     }
 
     function handleCreditOptic() {
@@ -446,7 +448,6 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
             value: opticValue
         };
         updates.push(secondUpdate);
-        console.log(updates);
 
         const response = await GoogleSheetsService.updateCalls({
             accessToken: accessToken,
@@ -455,6 +456,8 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
             appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
         });
 
+        refetch();
+        refetchOptics();
         setSoldierOptics([]);
         setShowMessage(true);
         setIsSuccess(response);

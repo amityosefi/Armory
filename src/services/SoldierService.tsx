@@ -40,7 +40,7 @@ export const creditSoldier = async (
     
     if (weaponColumnIndex !== -1) {
       // Find the right position to insert the data
-      const insertPosition = GoogleSheetsService.findInsertIndex(armoryResult.values, weaponType);
+      const insertPosition = await GoogleSheetsService.findInsertIndex(armoryResult.values, weaponType);
 
       // Add request to update armory inventory at the specific position
       if (armoryInventorySheet && armoryInventorySheet !== undefined) {

@@ -68,11 +68,25 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     const [chosenWeaponOrOptic, setChosenWeaponOrOptic] = useState('');
     const [chosenNewOptic, setChosenNewOptic] = useState('');
     const {
-        data: opticsData,
+        data: opticsData, refetch: refetchOptics
     } = useGoogleSheetData(
         {
             accessToken,
             range: "מלאי אופטיקה"
+        },
+        {
+            // Don't process data here, we'll do it with custom logic below
+            processData: false,
+            enabled: !!accessToken
+        }
+    );
+
+    const {
+        refetch: refetchWeapons
+    } = useGoogleSheetData(
+        {
+            accessToken,
+            range: "מלאי נשקיה"
         },
         {
             // Don't process data here, we'll do it with custom logic below
@@ -201,6 +215,9 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             signature: ''
         });
         refetch();
+        refetchOptics();
+        refetchWeapons();
+
     };
 
 
@@ -236,6 +253,8 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                     appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']]
                 });
             refetch();
+            refetchOptics();
+            refetchWeapons();
         } catch (error) {
             console.error('Error crediting soldier:', error);
             setShowMessage(true);
@@ -286,6 +305,8 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         setNewWeaponOrOpticName('')
         setIsCreditingInProgress(false);
         refetch();
+        refetchOptics();
+        refetchWeapons();
 
     }
 
@@ -334,6 +355,8 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         setAddOpticColumn(false);
         setIsCreditingInProgress(false);
         refetch();
+        refetchOptics();
+        refetchWeapons();
     }
 
     async function handleNewSerialWeaponOrOptic() {
@@ -389,6 +412,8 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         setNewSerialWeaponOrOpticName('');
         setIsCreditingInProgress(false);
         refetch();
+        refetchOptics();
+        refetchWeapons();
     }
 
     const creditButton = selectedRow && groupIndex === 0 && (
