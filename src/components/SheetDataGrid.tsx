@@ -94,6 +94,15 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     const navigate = useNavigate();
 
     const comboBoxRef = useRef<HTMLDivElement>(null);
+
+    const savedFilterRef = useRef<any>(null);
+    useEffect(() => {
+        if (gridApiRef.current && savedFilterRef.current) {
+            gridApiRef.current.setFilterModel(savedFilterRef.current);
+            savedFilterRef.current = null; // reset to avoid reapplying
+        }
+    }, [rowData]);
+
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (
@@ -293,6 +302,11 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     async function handleConfirmOpticCredit() {
         setShowConfirmDialog(false);
         setIsLoading(true);
+
+        if (gridApiRef.current) {
+            savedFilterRef.current = gridApiRef.current.getFilterModel();
+        }
+
         if (event) {
             const userEmail = localStorage.getItem('userEmail');
             const msg = event.row["שם_מלא"] + " זיכה " + getHeaderNameByField(event.colName) + " " + event.value + " " + selectedSheet.name;
@@ -354,6 +368,12 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     async function handleSelectOption(option: { rowIndex: number, colIndex: number, value: string }) {
         setShowComboBox(false);
         setIsLoading(true);
+
+        if (gridApiRef.current) {
+            savedFilterRef.current = gridApiRef.current.getFilterModel();
+            console.log("Saved filter model:", savedFilterRef.current);
+        }
+
         const userEmail = localStorage.getItem('userEmail');
         if (!event) {
             console.error("event is null");
@@ -444,18 +464,19 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             isRevertingNameOrComment.current = false;
             return;
         }
-        let msg = '';
+        let msg;
         if (selectedSheet.name === 'טבלת נשקיה')
             msg = 'חתימה מול החטיבה שונתה ל' + event.newValue;
         else
             msg = "חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field + ': ' + event.newValue;
+        console.log('event.rowRealIndex', event);
         if (event.colDef.field === 'הערות') {
             const userEmail = localStorage.getItem('userEmail');
             const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
                 updates: [{
                     sheetId: selectedSheet.id,
-                    rowIndex: event.rowIndex + 1,
+                    rowIndex: event.data.rowRealIndex + 1,
                     colIndex: incomingColumnDefs.findIndex(c => c.field === event.colDef.field),
                     value: event.newValue ?? ""
                 }],
