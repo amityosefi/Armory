@@ -217,7 +217,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         refetch();
         refetchOptics();
         refetchWeapons();
-
     };
 
 
@@ -492,20 +491,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         </button>
     );
 
-    const showSoldierModal = isGroupSheet() && selectedRow && (
-        <button
-            onClick={() => navigate('/soldier-card', {
-                state: {
-                    row: selectedRow,
-                    sheetName: selectedSheet.name
-                }
-            })}
-            className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
-        >
-            כרטיסיית חייל
-        </button>
-    );
-
     return (
         <div>
             <h2 className="text-xl font-semibold mb-4">{currentGroup.name}</h2>
@@ -534,7 +519,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             {assignSoldier && (
                 <AssignWeapon
                     accessToken={accessToken}
-                    sheetName={selectedSheet.name}
                     formValues={formValues}
                     setFormValues={setFormValues}
                     onConfirm={handleConfirmNewSoldier}
@@ -622,7 +606,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             ) : error ? (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     <p className="font-bold">Error:</p>
-                    <p>{error instanceof Error ? error.message : 'Failed to fetch sheet data'}</p>
+                    <p>{error.message ? 'Failed to fetch sheet data' : ''}</p>
                 </div>
             ) : [ 'טבלת נשקיה'].includes(selectedSheet.name) ? (
                 <SummaryComponent accessToken={accessToken}/>

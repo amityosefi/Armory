@@ -243,7 +243,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
         } else {
             // @ts-ignore
-            const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(opticsData.values, getHeaderNameByField(event.colName));
+            const valuesForAssign = GoogleSheetsService.findValuesUnderHeader(opticsData.values, event.colName);
             const uniqueOptionsMap = new Map<string, { rowIndex: number, colIndex: number, value: string }>();
             valuesForAssign.forEach(item => {
                 if (!uniqueOptionsMap.has(item.value)) {
@@ -260,11 +260,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
     }
 
-    function getHeaderNameByField(field: string): string {
-        const match = columnDefs.find(col => col.field === field);
-        return match.headerName;
-    }
-
     // @ts-ignore
     async function onClickedOptic(event1: any): Promise<boolean> {
         // Redirect if first column is clicked
@@ -277,7 +272,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         }
         setEvent({
             rowIndex: event1.data.rowRealIndex,
-            colName: event1.colDef.field,
+            colName: event1.colDef.headerName,
             value: event1.value,
             oldValue: event1.oldValue,
             row: event1.data,
@@ -308,19 +303,20 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         }
 
         if (event) {
+
             const userEmail = localStorage.getItem('userEmail');
-            const msg = event.row["שם_מלא"] + " זיכה " + getHeaderNameByField(event.colName) + " " + event.value + " " + selectedSheet.name;
+            const msg = event.row["שם_מלא"] + " זיכה " + event.colName + " " + event.value + " " + selectedSheet.name;
             const columnFields = columnDefs.map(col => col.field);
             let rowCol;
             let colIndex;
             let sheetid;
             let anotherUpdate;
             if (columnFields.includes(event.colName) || event.colName === "M5" || event.colName === "מפרו" || event.colName === "מארס") {
-                rowCol = GoogleSheetsService.findInsertIndex(opticsData.values, getHeaderNameByField(event.colName));
+                rowCol = GoogleSheetsService.findInsertIndex(opticsData.values, event.colName);
                 colIndex = event.colName === "M5" || event.colName === "מפרו" || event.colName === 'מארס' ? 'כוונת' : event.colName;
                 sheetid = 1158402644;
             } else {
-                rowCol = GoogleSheetsService.findInsertIndex(weaponData.values, getHeaderNameByField(event.colName));
+                rowCol = GoogleSheetsService.findInsertIndex(weaponData.values, event.colName);
                 colIndex = 'מסד';
                 sheetid = 262055601;
                 anotherUpdate = {
@@ -371,7 +367,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
         if (gridApiRef.current) {
             savedFilterRef.current = gridApiRef.current.getFilterModel();
-            console.log("Saved filter model:", savedFilterRef.current);
         }
 
         const userEmail = localStorage.getItem('userEmail');
@@ -387,7 +382,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         const firstUpdate = {
             sheetId: selectedSheet.id,
             rowIndex: event.rowIndex + 1,
-            colIndex: columnDefs.findIndex(c => c.headerName === getHeaderNameByField(event.colName)),
+            colIndex: columnDefs.findIndex(c => c.headerName === event.colName),
             value: option.value
         };
         updates.push(firstUpdate)
@@ -395,7 +390,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         let msg;
         let anotherUpdate;
         if (event.colName == 'מסד') {
-            msg = `הנשק ${getHeaderNameByField(event.colName)} ${option.value} הוחתם בהצלחה לחייל ${event.row["שם_מלא"]} ` + " " + selectedSheet.name;
+            msg = `הנשק ${event.colName} ${option.value} הוחתם בהצלחה לחייל ${event.row["שם_מלא"]} ` + " " + selectedSheet.name;
             anotherUpdate = {
                 sheetId: 262055601,
                 rowIndex: option.rowIndex,
