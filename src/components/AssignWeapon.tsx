@@ -1,12 +1,13 @@
-import React, {useEffect, useState, useRef} from "react";
+import React, {useMemo, useEffect, useState, useRef} from "react";
 import SignatureCanvas from "react-signature-canvas";
 import {useGoogleSheetData} from "./hooks/useGoogleSheetData";
 import Select from "react-select";
 import {sheetGroups} from "../constants";
+import CreatableSelect from 'react-select/creatable';
+
 
 interface AssignWeaponProps {
     accessToken: string;
-    sheetName: string;
     formValues: {
         fullName: string;
         personalNumber: number | any;
@@ -49,7 +50,6 @@ interface AssignWeaponProps {
 
 const AssignWeapon: React.FC<AssignWeaponProps> = ({
                                                        accessToken,
-                                                       sheetName,
                                                        formValues,
                                                        setFormValues,
                                                        onConfirm,
@@ -58,6 +58,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                                                        setSelectedOptic,
                                                        setShowDialog,
                                                        setAssignSoldier,
+
                                                    }) => {
     const {data: opticsData} = useGoogleSheetData(
         {
@@ -91,8 +92,34 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
             enabled: !!accessToken,
         }
     );
-
     const plugaSheets = sheetGroups.find(group => group.name === "פלוגות")?.sheets || [];
+
+    const peopleOptions = useMemo(() => {
+        if (!peopleData?.values || peopleData.values.length < 2) return [];
+
+        const rows = peopleData.values.slice(1); // skip header
+
+        return rows
+            .filter((row: any[]) => row[0] && row[1] && row[2]) // filter out rows with missing personal number or names
+            .map((row: string[]) => {
+                const fullName = `${row[2]} ${row[1]}`; // שם פרטי + שם משפחה
+                return {
+                    label: fullName,                 // 👈 this will appear in dropdown
+                    value: row[0],                   // מספר אישי (personal number)
+                    fullName: fullName,
+                    personalNumber: Number(row[0]),
+                    phone: (row[4] || "").replace(/-/g, ""), // פלאפון
+                    group: getGroupIdByName(row[3]),         // פלוגה
+                };
+            });
+    }, [peopleData]);
+
+
+    function getGroupIdByName(name: string) {
+        const match = plugaSheets.find((sheet) => sheet.name === name);
+        return match?.id || 0;
+    }
+
 
     const [serialNumbers, setSerialNumbers] = useState<
         { value: string; rowIndex: number; colIndex: number }[]
@@ -129,6 +156,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
         if (!opticsData?.values?.length) return;
 
         try {
+            // @ts-ignore
             const headers = opticsData.values[0];
             const validTypes = ["M5", 'מארס', "מפרו"];
             const newOpticOptions: { label: string; rowIndex: number; colIndex: number }[] = [];
@@ -138,6 +166,7 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                 if (colIndex === -1) return;
 
                 for (let rowIndex = 1; rowIndex < opticsData.values.length; rowIndex++) {
+                    // @ts-ignore
                     const cellValue = opticsData.values[rowIndex][colIndex];
                     if (cellValue?.trim()) {
                         newOpticOptions.push({
@@ -161,13 +190,13 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
             return;
         }
 
+        // @ts-ignore
         const headers = weaponData.values[0];
         const colIndex = headers.indexOf(formValues.weaponName);
         if (colIndex === -1) {
             setSerialNumbers([]);
             return;
         }
-
         const serials = weaponData.values
             .slice(1)
             .map((row: any[], i: number) => ({
@@ -225,20 +254,30 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                 ref={modalRef}
                 className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md my-4 sm:my-0 max-h-[90vh] overflow-y-auto"
             >
-                <h2 className="text-lg font-bold mb-4 text-right">החתמת חייל</h2>
+                <h2 className="text-lg font-bold mb-4 text-right">החתמת חייל - {plugaSheets.find(p => p.id === formValues.group)?.name || ''}</h2>
                 <div className="space-y-4">
                     {/* Full Name */}
                     <div>
                         <label className="block text-right font-medium">שם מלא של החייל</label>
-                        <input
-                            type="text"
-                            className="w-full border p-2 rounded text-right"
-                            value={formValues.fullName}
-                            onChange={(e) =>
-                                setFormValues((prev) => ({...prev, fullName: e.target.value}))
-                            }
+                        <CreatableSelect
+                            options={peopleOptions}
+                            getOptionLabel={(option: any) => option.label}
+                            getOptionValue={(option: any) => option.value}
+                            onChange={(selectedOption) => {
+                                if (!selectedOption) return;
+                                setFormValues({
+                                    ...formValues,
+                                    fullName: selectedOption.fullName,
+                                    personalNumber: selectedOption.personalNumber,
+                                    phone: selectedOption.phone,
+                                    group: selectedOption.group,
+                                });
+                            }}
+                            isClearable
+                            placeholder="שם החייל"
                         />
                     </div>
+
 
                     {/* Personal Number */}
                     <div>

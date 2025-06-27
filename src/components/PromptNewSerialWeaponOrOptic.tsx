@@ -101,7 +101,12 @@ const PromptNewSerialWeaponOrOptic: React.FC<promptNewSerialWeaponOrOpticProps> 
                     </div>
 
                     {/*serial number */}
-                    <div>
+                    <div onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault(); // optional: prevent form submit or newline
+                            onConfirm();
+                        }
+                    }}>
                         <label
                             className="block text-right font-medium">{sheetName === "מלאי נשקיה" ? 'מסד נשק חדש' : 'מסד אמרל חדש'}</label>
                         <input

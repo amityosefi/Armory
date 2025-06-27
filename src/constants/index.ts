@@ -34,4 +34,6 @@ export const sheetGroups: SheetGroup[] = [
 ];
 
 // Default spreadsheet ID
-export const DEFAULT_SPREADSHEET_ID = '1I-4WiQHDkBjPWA2r2Oa4QBS0Nspj_Iy6NmJUCrTiHSY';
+export const DEFAULT_SPREADSHEET_ID = '1I-4WiQHDkBjPWA2r2Oa4QBS0Nspj_Iy6NmJUCrTiHSY'; // Deployed spreadsheet ID
+// export const DEFAULT_SPREADSHEET_ID = '12SEo0M6Ky03mOnOLxJZNo3vnyAuVTJrjrC5870yBj2c'; // Local spreadsheet ID for development
+
