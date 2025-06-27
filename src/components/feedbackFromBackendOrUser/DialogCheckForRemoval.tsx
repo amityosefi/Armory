@@ -5,9 +5,10 @@ interface ConfirmDialogProps {
     clickedCellInfo: { colName: string; value: string } | null;
     onConfirm: () => void;
     onCancel: () => void;
+    onRemoveItem: () => void;
 }
 
-const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isGroupSheet, clickedCellInfo, onConfirm, onCancel }) => {
+const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isGroupSheet, clickedCellInfo, onConfirm, onCancel, onRemoveItem }) => {
     const dialogRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -47,13 +48,23 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isGroupSheet, clickedCell
                 </p>
                 <div className="flex justify-around mt-4">
                     <button
-                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                        className="bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600"
                         onClick={onConfirm}
                     >
                         {isGroupSheet === 0 ? 'כן, לזכות את האמצעי' : isGroupSheet === 1 ? 'להעביר לתקול לסדנא' : 'להעביר למלאי'}
                     </button>
+                    {
+                        isGroupSheet === 1 && (
+                            <button
+                                className="bg-red-500 text-white px-2 py-2 rounded hover:bg-red-600"
+                                onClick={onRemoveItem}
+                            >
+                                למחוק אמצעי
+                            </button>
+                        )
+                    }
                     <button
-                        className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+                        className="bg-gray-300 px-2 py-2 rounded hover:bg-gray-400"
                         onClick={onCancel}
                     >
                         לא

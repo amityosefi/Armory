@@ -464,7 +464,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             msg = 'חתימה מול החטיבה שונתה ל' + event.newValue;
         else
             msg = "חייל " + event.data["שם_מלא"] + " שינה " + event.colDef.field + ': ' + event.newValue;
-        console.log('event.rowRealIndex', event);
         if (event.colDef.field === 'הערות') {
             const userEmail = localStorage.getItem('userEmail');
             const response = await GoogleSheetsService.updateCalls({
@@ -500,7 +499,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             const msg = event.colName + " " + event.value + " הועבר לתקול לסדנא מ" + selectedSheet.name;
 
             const rowCol = GoogleSheetsService.findInsertIndex(sandaData.values, event.colName);
-            console.log(rowCol);
             const update = [
                 {
                     sheetId: 1689612813,
@@ -549,7 +547,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             const msg = event.colName + " " + event.value + " הועבר מתקול לסדנא ל" + sheetTofireName;
 
             const rowCol = GoogleSheetsService.findInsertIndex(sandaData.values, event.colName);
-            console.log(rowCol);
             const update = [
                 {
                     sheetId: sheetTofireId,
@@ -567,6 +564,40 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
                 updates: update,
+                appendSheetId: 1070971626,
+                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
+            });
+            setShowMessage(true);
+            setIsSuccess(response);
+            setMessage(response ? msg : `בעיה בהעברה למלאי`);
+            refetch();
+            refetchOpticsData();
+            refetchWeaponData();
+            refetchSandaData();
+            if (!response) {
+                isRevertingNameOrComment.current = true;
+            }
+            setIsLoading(false);
+        }
+    }
+
+    async function handleConfirmOpticDelete() {
+        setShowConfirmDialog(false);
+        setIsLoading(true);
+        if (event) {
+            console.log("Deleting optic", event);
+            const userEmail = localStorage.getItem('userEmail');
+            const msg = event.colName + " " + event.value + "זוכה מול החטיבה";
+            const response = await GoogleSheetsService.updateCalls({
+                accessToken: accessToken,
+                updates: [
+                    {
+                        sheetId: selectedSheet.id,
+                        rowIndex: event.row.rowRealIndex + 1,
+                        colIndex: incomingColumnDefs.findIndex(c => c.field === event.colName),
+                        value: ""
+                    }
+                    ],
                 appendSheetId: 1070971626,
                 appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
             });
@@ -773,8 +804,15 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                             <ConfirmDialog
                                 isGroupSheet={isGroupSheet() ? 0 : selectedSheet.range === 'תקול לסדנא' ? 2 : 1}
                                 clickedCellInfo={event}
-                                onConfirm={() => isGroupSheet() ? handleConfirmOpticCredit() : selectedSheet.range === 'תקול לסדנא' ? handleConfirmOpticStock() : handleConfirmOpticSadna()}
+                                onConfirm={() => {
+                                    if (isGroupSheet())
+                                        handleConfirmOpticCredit()
+                                    else if (selectedSheet.range === 'תקול לסדנא')
+                                        handleConfirmOpticStock()
+                                    else handleConfirmOpticSadna()
+                                }}
                                 onCancel={() => setShowConfirmDialog(false)}
+                                onRemoveItem={handleConfirmOpticDelete}
                             />
                         </div>
                     )}
