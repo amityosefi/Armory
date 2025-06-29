@@ -264,7 +264,21 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                             getOptionLabel={(option: any) => option.label}
                             getOptionValue={(option: any) => option.value}
                             onChange={(selectedOption) => {
-                                if (!selectedOption) return;
+                                if (!selectedOption) {
+                                    setFormValues({ ...formValues, fullName: '' });
+                                    return;
+                                }
+
+                                // If selectedOption is a new value typed by the user (Creatable)
+                                if (typeof selectedOption === 'string' || !selectedOption.fullName) {
+                                    setFormValues({
+                                        ...formValues,
+                                        fullName: selectedOption.label || ''
+                                    });
+                                    return;
+                                }
+
+                                // Selected an existing option
                                 setFormValues({
                                     ...formValues,
                                     fullName: selectedOption.fullName,

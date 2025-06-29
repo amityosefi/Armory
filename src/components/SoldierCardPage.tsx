@@ -66,6 +66,8 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
         {processData: false, enabled: !!accessToken}
     );
 
+    // console.log(data);
+
     const [opticRows, setOpticRows] = useState<{ name: string; masad: string }[]>([]);
 
     const headerRange = sheetName ? `${sheetName}!A1:BBB1` : '';
@@ -73,6 +75,45 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
         {accessToken, range: headerRange},
         {processData: false, enabled: !!accessToken && !!headerRange}
     );
+
+    /*
+    useEffect(() => {
+        if (!data?.values || !headerData?.values || headerData.values.length === 0) return;
+
+        const headers = headerData?.values?.[0] || [];
+        const currentRow = data.values[0];     // ✅ This is the selected soldier's row
+
+        const personalNumberIndex = headers.indexOf("מספר אישי");
+        const personalNumber = currentRow?.[personalNumberIndex];
+        if (!personalNumber || !sheetName) return;
+
+        // Fetch full sheet (to find others with same personal number)
+        const fullRange = `${sheetName}!A2:BBB`; // skip header
+        GoogleSheetsService.fetchSheetData(accessToken, fullRange).then((res) => {
+            const matchingRows = res?.values?.filter((row: string[]) =>
+                row[personalNumberIndex] === personalNumber
+            ) || [];
+
+            const optics: { key: string; value: string }[] = [];
+
+            matchingRows.forEach((row: string[]) => {
+                row.forEach((cell, colIndex) => {
+                    if (cell && headers[colIndex]) {
+                        optics.push({
+                            key: headers[colIndex],
+                            value: cell,
+                        });
+                    }
+                });
+            });
+
+            setSoldierOptics(optics);
+        });
+
+    }, [data?.values, headerData?.values, soldierIndex, sheetName]);
+*/
+
+
     const [isMutating, setIsMutating] = useState(false);
     const isLoading = isLoadingSoldier || isLoadingHeaders || isMutating;
     let row: Record<string, any> = {};
