@@ -341,7 +341,6 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 width: 80,
                 cellStyle: {textAlign: 'center', backgroundColor: '#fff7d1'},
                 headerClass: 'ag-right-aligned-header',
-                valueParser: (params) => Number(params.newValue) || 0,
             },
             {
                 headerName: 'פער',

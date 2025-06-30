@@ -498,6 +498,9 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             const userEmail = localStorage.getItem('userEmail');
             const msg = event.colName + " " + event.value + " הועבר לתקול לסדנא מ" + selectedSheet.name;
 
+            console.log(event.colName)
+            console.log(sandaData.values[0])
+
             const rowCol = GoogleSheetsService.findInsertIndex(sandaData.values, event.colName);
             const update = [
                 {
@@ -594,7 +597,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     {
                         sheetId: selectedSheet.id,
                         rowIndex: event.row.rowRealIndex + 1,
-                        colIndex: incomingColumnDefs.findIndex(c => c.field === event.colName),
+                        colIndex: incomingColumnDefs.findIndex(c => c.headerName === event.colName),
                         value: ""
                     }
                     ],
