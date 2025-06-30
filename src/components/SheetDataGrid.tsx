@@ -512,7 +512,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 {
                     sheetId: selectedSheet.id,
                     rowIndex: event.rowIndex + 1,
-                    colIndex: columnDefs.findIndex(col => col.field === event.colName),
+                    colIndex: columnDefs.findIndex(col => col.headerName === event.colName),
                     value: ""
                 }];
 
@@ -588,7 +588,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         setShowConfirmDialog(false);
         setIsLoading(true);
         if (event) {
-            console.log("Deleting optic", event);
             const userEmail = localStorage.getItem('userEmail');
             const msg = event.colName + " " + event.value + "זוכה מול החטיבה";
             const response = await GoogleSheetsService.updateCalls({
