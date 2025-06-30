@@ -30,6 +30,19 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
             enabled: !!accessToken
         }
     );
+    const {
+        data: weaponsData, refetch: refetchWeapons
+    } = useGoogleSheetData(
+        {
+            accessToken,
+            range: "מלאי נשקיה"
+        },
+        {
+            // Don't process data here, we'll do it with custom logic below
+            processData: false,
+            enabled: !!accessToken
+        }
+    );
 
     const [showMessage, setShowMessage] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -129,19 +142,35 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
     }
 
     useEffect(() => {
-        if (selectedOpticColumn && opticsData?.values?.length) {
-            const values = opticsData.values
-                .slice(1)
-                .map((row: any[], i: number) => ({
-                    value: row[selectedOpticColumn.colIndex],
-                    rowIndex: i + 1,
-                    colIndex: selectedOpticColumn.colIndex
-                }))
-                .filter((opt: { value: string; }) => opt.value?.trim()); // Only non-empty
+        if (selectedOpticColumn !== null && opticsData?.values?.length && weaponsData.values?.length) {
+            let values;
+            // @ts-ignore
+            console.log(selectedOpticColumn)
+            if (weaponsData.values[0].includes(selectedOpticColumn.label))
+            {
+                values = weaponsData.values.slice(1)
+                    .map((row: any[], i: number) => ({
+                        value: row[selectedOpticColumn.colIndex],
+                        rowIndex: i + 1,
+                        colIndex: selectedOpticColumn.colIndex
+                    }))
+                    .filter((opt: { value: string; }) => opt.value?.trim());
+            }
+            else
+            {
+                values = opticsData.values
+                    .slice(1)
+                    .map((row: any[], i: number) => ({
+                        value: row[selectedOpticColumn.colIndex],
+                        rowIndex: i + 1,
+                        colIndex: selectedOpticColumn.colIndex
+                    }))
+                    .filter((opt: { value: string; }) => opt.value?.trim());
+            }
 
             setSecondOptions(values);
         }
-    }, [selectedOpticColumn, opticsData]);
+    }, [selectedOpticColumn, opticsData, weaponsData]);
 
 
     async function changeNameOrComment(fieldName: string) {
@@ -364,21 +393,20 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
             "פלאפון",
             "חתימה",
             "זמן חתימה",
-            "סוג נשק",
             "כוונת",
             "מסד",
             "הערות"
         ];
+
+        const headerRow = opticsData.values[0];
 
         // Step 1: find optic keys in the row that are empty
         const nonEmptyFilteredKeys = Object.keys(row).filter(
             key => !excludedKeys.includes(key) && row[key]?.toString().trim() === ''
         );
 
-        const headerRow = opticsData.values[0];
-
         // Step 2: get matching optics from header row
-        const filtered: typeof dropdownOptions = nonEmptyFilteredKeys.map(label => {
+        const filteredFromOptics: typeof dropdownOptions = nonEmptyFilteredKeys.map(label => {
             const colIndex = headerRow.indexOf(label);
             return colIndex !== -1 ? {
                 value: label,
@@ -387,39 +415,71 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
             } : null;
         }).filter(Boolean) as typeof dropdownOptions;
 
-        // Step 3: update dropdown
-        setFilteredOpticOptions(filtered);
-        setSelectedOpticColumn(null); // reset previous
-        setSelectedSecondOption(null); // reset serial
+        // Step 3: if 'סוג נשק' is empty, add weapon options
+        let weaponDropdownOptions: typeof dropdownOptions = [];
+        if (row['סוג נשק']?.toString().trim() === '' && weaponsData?.values?.length) {
+            const weaponHeaders = weaponsData.values[0]; // assuming first row is headers
+            weaponDropdownOptions = weaponHeaders.map((weapon: string, colIndex: number) => ({
+                value: weapon,
+                rowIndex: -1,
+                colIndex,
+            }));
+        }
+
+        // Step 4: update dropdown with merged options
+        setFilteredOpticOptions([...filteredFromOptics, ...weaponDropdownOptions]);
+        setSelectedOpticColumn(null);
+        setSelectedSecondOption(null);
     }
+
 
     const sheetId = (name: string | undefined): number | undefined =>
         sheetGroups.flatMap(group => group.sheets).find(sheet => sheet.range === name)?.id;
 
 
     async function handleChosenOpticToSign(selected: { value: string; rowIndex: number; colIndex: number }) {
-        const msg = 'החייל ' + row['שם מלא'] + ' חתם על אמרל ' + selectedOpticColumn?.label + ' עם מספר סידורי ' + selected?.value + ' מפלוגה ' + sheetName;
+        const msg = 'החייל ' + row['שם מלא'] + ' חתם על ' + selectedOpticColumn?.label + ' עם מספר סידורי ' + selected?.value + ' מפלוגה ' + sheetName;
         if (!selected || !selectedOpticColumn) return;
         const updates = [];
-
-        const colIndex = Object.keys(row).findIndex(c => c === selectedOpticColumn.label);
-        // @ts-ignore
-        const firstUpdate = {
-            sheetId: sheetId(sheetName),
-            rowIndex: Number(soldierIndex) - 1,
-            colIndex: colIndex,
-            value: selected.value
-        };
-        updates.push(firstUpdate)
+        let colIndex = Object.keys(row).findIndex(c => c === selectedOpticColumn.label);
+        let sheetToDelete;
+        if (weaponsData.values[0].includes(selectedOpticColumn.label)) {
+            sheetToDelete = sheetId('מלאי נשקיה');
+            colIndex = Object.keys(row).findIndex(c => c === 'מסד');
+            updates.push({
+                sheetId: sheetId(sheetName),
+                rowIndex: Number(soldierIndex) - 1,
+                colIndex: colIndex,
+                value: selected.value
+            });
+            updates.push({
+                sheetId: sheetId(sheetName),
+                rowIndex: Number(soldierIndex) - 1,
+                colIndex: Object.keys(row).findIndex(c => c === 'סוג נשק'),
+                value: selectedOpticColumn.label
+            })
+        } else {
+            // @ts-ignore
+            const firstUpdate = {
+                sheetId: sheetId(sheetName),
+                rowIndex: Number(soldierIndex) - 1,
+                colIndex: colIndex,
+                value: selected.value
+            };
+            updates.push(firstUpdate)
+            sheetToDelete = sheetId('מלאי אופטיקה');
+        }
 
         // @ts-ignore
         const secondUpdate = {
-            sheetId: sheetId('מלאי אופטיקה'),
+            sheetId: sheetToDelete,
             rowIndex: selected.rowIndex,
             colIndex: selected.colIndex,
             value: ''
         };
         updates.push(secondUpdate);
+
+        console.log('Updates to be sent:', updates);
 
         const response = await GoogleSheetsService.updateCalls({
             accessToken: accessToken,
@@ -587,7 +647,7 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
 
                 {filteredOpticOptions.length > 0 && (
                     <div>
-                        <label className="block text-right font-medium mt-2">בחר סוג כוונת</label>
+                        <label className="block text-right font-medium mt-2">בחר סוג אמצעי</label>
                         <select
                             className="border p-2 rounded text-right"
                             value={selectedOpticColumn?.label || ''}
@@ -601,7 +661,7 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                                 }
                             }}
                         >
-                            <option value="">בחר כוונת</option>
+                            <option value="">בחר מסד</option>
                             {filteredOpticOptions.map((opt, idx) => (
                                 <option key={idx} value={opt.value}>{opt.value}</option>
                             ))}
