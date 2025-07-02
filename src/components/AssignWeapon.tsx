@@ -299,6 +299,8 @@ const AssignWeapon: React.FC<AssignWeaponProps> = ({
                         <input
                             type="text"
                             className="w-full border p-2 rounded text-right"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             value={formValues.personalNumber?.toString() || ""}
                             onChange={(e) => {
                                 const value = e.target.value.replace(/\D/g, "");

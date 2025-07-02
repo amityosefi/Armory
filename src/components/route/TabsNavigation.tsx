@@ -11,6 +11,7 @@ interface TabsNavigationProps {
     addWeaponOrOptic?: React.ReactNode;
     addNewSerialWeaponOrOptic?: React.ReactNode;
     addOpticToGroup?: React.ReactNode;
+    downloadSadbaData?: React.ReactNode;
     // showSoldierModal?: React.ReactNode;
 
 }
@@ -25,6 +26,7 @@ function TabsNavigation({
                             addWeaponOrOptic,
                             addNewSerialWeaponOrOptic,
                             addOpticToGroup,
+                            downloadSadbaData
                             // showSoldierModal
 
                         }: TabsNavigationProps) {
@@ -94,6 +96,7 @@ function TabsNavigation({
                 {addWeaponOrOptic}
                 {addNewSerialWeaponOrOptic}
                 {addOpticToGroup}
+                {downloadSadbaData}
                 {/*{showSoldierModal}*/}
             </div>
         </div>
