@@ -11,6 +11,7 @@ import AssignWeapon from './AssignWeapon';
 import AcceptSoldier from './feedbackFromBackendOrUser/AcceptSoldierWeapon';
 import {jsPDF} from 'jspdf';
 import googleSheetsService from "../services/GoogleSheetsService";
+import autoTable from "jspdf-autotable";
 
 import '../fonts/NotoSansHebrew-normal';
 import PromptNewWeaponOrOptic from "./PromptNewWeaponOrOptic";
@@ -264,6 +265,29 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         }
     };
 
+    const mirrorHebrewSmart = (str: string): string => {
+        if (!str) return '';
+
+        const words = str.trim().split(/\s+/);
+
+        // Check if all words are Hebrew
+        const allHebrew = words.every(word =>
+            [...word].every(char => /[\u0590-\u05FF"״׳]/.test(char))
+        );
+
+        const transformedWords = words.map(word => {
+            const isHebrew = [...word].every(char => /[\u0590-\u05FF"״׳]/.test(char));
+            return isHebrew ? [...word].reverse().join('') : word;
+        });
+
+        // Reverse word order only if all words are Hebrew
+        const finalWords = allHebrew ? transformedWords.reverse() : transformedWords;
+
+        return finalWords.join(' ');
+    };
+
+
+
     async function handleNewWeaponOrOptic() {
         setIsCreditingInProgress(true);
         const updates = [{
@@ -311,9 +335,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
 
     async function handleConfirmNewOptic() {
 
-        console.log('Chosen new optic:', chosenNewOptic);
-        console.log('selectedSheet:', selectedSheet.id);
-        console.log('columnDefs.map(row => row.headerName).length:', columnDefs.map(row => row.headerName).length);
         const msg = 'ל' + selectedSheet.name + ' נוסף אמרל חדש: ' + chosenNewOptic;
         setIsCreditingInProgress(true);
         // @ts-ignore
@@ -491,6 +512,74 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         </button>
     );
 
+    const downloadSadbaData = selectedSheet.range === 'תקול לסדנא' && (
+        <button
+            className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
+            onClick={async () => {
+                if (!sheetQueryData?.values?.length) return;
+
+                const headers = sheetQueryData.values[0];
+                const rows = sheetQueryData.values.slice(1);
+
+                const doc = new jsPDF({ orientation: "portrait" });
+
+                // ✅ Load and set Hebrew font
+                doc.addFont('NotoSansHebrew-normal.ttf', 'NotoSansHebrew', 'normal');
+                doc.setFont('NotoSansHebrew');
+                doc.setFontSize(14);
+
+                let currentY = 20;
+
+                for (const [colIndex, header] of headers.entries()) {
+                    const values = rows
+                        .map((row: { [x: string]: any; }) => row[colIndex])
+                        .filter((value: string) => value && value.trim() !== "");
+
+                    if (values.length > 0) {
+                        const mirroredHeader = mirrorHebrewSmart(header);
+                        doc.text(mirroredHeader, 100, currentY, { align: 'center' }); // Align right for Hebrew
+                        currentY += 5;
+
+                        autoTable(doc, {
+                            startY: currentY,
+                            head: [ "#"],
+                            body: values.map((val: string) => [
+                                mirrorHebrewSmart(val)
+                            ]),
+                            theme: "grid",
+                            styles: {
+                                font: 'NotoSansHebrew', // ✅ Set font inside table too
+                                fontSize: 12,
+                                halign: 'right',        // Align Hebrew values
+                            },
+                            headStyles: {
+                                font: 'NotoSansHebrew',
+                                fillColor: [0, 102, 204],
+                                textColor: 255,
+                                halign: 'right',
+                            },
+                            margin: { left: 14, right: 14 },
+                            didDrawPage: (data: { cursor: { y: number; }; }) => {
+                                currentY = data.cursor.y + 10;
+                            },
+                        });
+                    }
+                }
+
+                doc.save("סיכום סדנא.pdf");
+            }}
+
+
+        >
+            {isCreditingInProgress ? (
+                <span className="flex items-center">
+                מעבד...
+                <span className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+            </span>
+            ) : 'הורדת טופס'}
+        </button>
+    );
+
     return (
         <div>
             <h2 className="text-xl font-semibold mb-4">{currentGroup.name}</h2>
@@ -499,6 +588,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                             creditButton={creditButton}
                             assignWeaponButton={assignWeaponButton} addWeaponOrOptic={addWeaponOrOptic}
                             addNewSerialWeaponOrOptic={addNewSerialWeaponOrOptic} addOpticToGroup={addOpticToGroup}
+                            downloadSadbaData={downloadSadbaData}
                 // showSoldierModal={showSoldierModal}
             />
 
