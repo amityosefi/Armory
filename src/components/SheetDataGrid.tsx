@@ -306,7 +306,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
             const userEmail = localStorage.getItem('userEmail');
             const msg = event.row["שם_מלא"] + " זיכה " + event.colName + " " + event.value + " " + selectedSheet.name;
-            const columnFields = columnDefs.map(col => col.field);
+            const columnFields = columnDefs.map(col => col.headerName);
             let rowCol;
             let colIndex;
             let sheetid;
@@ -336,7 +336,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 {
                     sheetId: selectedSheet.id,
                     rowIndex: event.rowIndex + 1,
-                    colIndex: columnDefs.findIndex(col => col.field === colIndex),
+                    colIndex: columnDefs.findIndex(col => col.headerName === colIndex),
                     value: ""
                 }];
             if (anotherUpdate)
@@ -560,7 +560,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 {
                     sheetId: 1689612813,
                     rowIndex: event.rowIndex + 1,
-                    colIndex: columnDefs.findIndex(col => col.field === event.colName),
+                    colIndex: columnDefs.findIndex(col => col.headerName === event.colName),
                     value: ""
                 }];
 

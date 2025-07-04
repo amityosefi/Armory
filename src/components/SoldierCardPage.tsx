@@ -78,8 +78,6 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
             {processData: false, enabled: !!accessToken}
         );
 
-        // console.log(data);
-
         const [opticRows, setOpticRows] = useState<{ name: string; masad: string }[]>([]);
 
         const headerRange = sheetName ? `${sheetName}!A1:BBB1` : '';
@@ -107,7 +105,6 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
             if (selectedOpticColumn !== null && opticsData?.values?.length && weaponsData.values?.length) {
                 let values;
                 // @ts-ignore
-                console.log(selectedOpticColumn)
                 if (weaponsData.values[0].includes(selectedOpticColumn.label)) {
                     values = weaponsData.values.slice(1)
                         .map((row: any[], i: number) => ({
@@ -418,13 +415,13 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                 colIndex = Object.keys(row).findIndex(c => c === 'מסד');
                 updates.push({
                     sheetId: sheetId(sheetName),
-                    rowIndex: Number(soldierIndex) - 1,
+                    rowIndex: parseInt(soldierIndex || '0', 10) - 1,
                     colIndex: colIndex,
                     value: selected.value
                 });
                 updates.push({
                     sheetId: sheetId(sheetName),
-                    rowIndex: Number(soldierIndex) - 1,
+                    rowIndex: parseInt(soldierIndex || '0', 10) - 1,
                     colIndex: Object.keys(row).findIndex(c => c === 'סוג נשק'),
                     value: selectedOpticColumn.label
                 })
@@ -432,7 +429,7 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                 // @ts-ignore
                 const firstUpdate = {
                     sheetId: sheetId(sheetName),
-                    rowIndex: Number(soldierIndex) - 1,
+                    rowIndex: parseInt(soldierIndex || '0', 10) - 1,
                     colIndex: colIndex,
                     value: selected.value
                 };
@@ -448,8 +445,6 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                 value: ''
             };
             updates.push(secondUpdate);
-
-            console.log('Updates to be sent:', updates);
 
             const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
@@ -506,7 +501,7 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
             // @ts-ignore
             const firstUpdate = {
                 sheetId: sheetId(sheetName),
-                rowIndex: Number(soldierIndex) - 1,
+                rowIndex: parseInt(soldierIndex || '0', 10) - 1,
                 colIndex: colIndex,
                 value: ''
             };
