@@ -7,6 +7,8 @@ import type {GridApi, GridReadyEvent} from 'ag-grid-community';
 import ComboBoxEditor from './ComboBoxEditor';
 import {useGoogleSheetData} from "./hooks/useGoogleSheetData";
 import {useParams, useNavigate} from 'react-router-dom';
+import type { RowStyle } from 'ag-grid-community';
+
 
 
 interface SheetDataGridProps {
@@ -123,7 +125,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     }, [showComboBox]);
 
     function isStockSheet() {
-        return ['מלאי אופטיקה','תקול לסדנא', 'מלאי נשקיה'].includes(selectedSheet.range);
+        return ['מלאי אופטיקה', 'תקול לסדנא', 'מלאי נשקיה'].includes(selectedSheet.range);
     }
 
     const columnDefs = incomingColumnDefs.map(col => {
@@ -267,7 +269,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             navigate(`/sheet/${selectedSheet.range}/soldier/${event1.data['rowRealIndex'] + 2}`);
             return false;
         }
-        if (!isGroupSheet() && !isStockSheet() || ['סוג_נשק', 'שם_מלא', 'אמצעים' ,'הערות'].includes(event1.colDef.field)) { // @ts-ignore
+        if (!isGroupSheet() && !isStockSheet() || ['סוג_נשק', 'שם_מלא', 'אמצעים', 'הערות'].includes(event1.colDef.field)) { // @ts-ignore
             return;
         }
         setEvent({
@@ -498,9 +500,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             const userEmail = localStorage.getItem('userEmail');
             const msg = event.colName + " " + event.value + " הועבר לתקול לסדנא מ" + selectedSheet.name;
 
-            console.log(event.colName)
-            console.log(sandaData.values[0])
-
             const rowCol = GoogleSheetsService.findInsertIndex(sandaData.values, event.colName);
             const update = [
                 {
@@ -545,11 +544,11 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             let sheetTofireId = 1158402644;
             if (weaponData.values[0].includes(event.colName)) {
                 sheetTofireName = 'מלאי נשקיה';
-                sheetTofireId =262055601;
+                sheetTofireId = 262055601;
             }
             const msg = event.colName + " " + event.value + " הועבר מתקול לסדנא ל" + sheetTofireName;
 
-            const rowCol = GoogleSheetsService.findInsertIndex(sandaData.values, event.colName);
+            const rowCol = GoogleSheetsService.findInsertIndex(opticsData.values, event.colName);
             const update = [
                 {
                     sheetId: sheetTofireId,
@@ -599,7 +598,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                         colIndex: incomingColumnDefs.findIndex(c => c.headerName === event.colName),
                         value: ""
                     }
-                    ],
+                ],
                 appendSheetId: 1070971626,
                 appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
             });
@@ -757,48 +756,56 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                             // @ts-ignore
                             return params.node.rowIndex % 2 === 0 ? 'ag-row-even' : 'ag-row-odd';
                         }}
-                        columnDefs={columnDefs}
-                        rowData={selectedSheet.range === 'תיעוד' ? [...rowData].reverse() : rowData}
-                        rowHeight={24}         // 👈 Shrink row height
-                        headerHeight={28}
-                        stopEditingWhenCellsLoseFocus={true}
-                        domLayout="normal"
-                        enableRtl={true}
-                        defaultColDef={{
-                            // flex: 1,
-                            minWidth: 100,
-                            sortable: true,
-                            resizable: true,
+                        getRowStyle={(params): RowStyle | undefined => {
+                            if (params.data?.הערות === 'מאופסן') {
+                                return { backgroundColor: '#ffe5e5' }; // ✅ This now matches RowStyle
+                            }
+                            return undefined;
                         }}
-                        rowSelection="single"
-                        isRowSelectable={() => isGroupSheet()}
-                        suppressRowClickSelection={true}
-                        onCellClicked={(event1) => {
-                            onClickedOptic(event1);
-                        }}
-                        onCellValueChanged={async (event) => {
-                            await changeNameOrComment(event);
-                        }}
-                        onRowSelected={(event) => {
-                            if (event.node && event.node.isSelected()) {
-                                const rowData = event.data;
-                                rowData['rowIndex'] = event.rowIndex; // Add index to rowData
+
+
+                    columnDefs={columnDefs}
+                    rowData={selectedSheet.range === 'תיעוד' ? [...rowData].reverse() : rowData}
+                    rowHeight={24} // 👈 Shrink row height
+                    headerHeight={28}
+                    stopEditingWhenCellsLoseFocus={true}
+                    domLayout="normal"
+                    enableRtl={true}
+                    defaultColDef={{
+                    // flex: 1,
+                    minWidth: 100,
+                    sortable: true,
+                    resizable: true,
+                }}
+                    rowSelection="single"
+                    isRowSelectable={() => isGroupSheet()}
+                    suppressRowClickSelection={true}
+                    onCellClicked={(event1) => {
+                    onClickedOptic(event1);
+                }}
+                    onCellValueChanged={async (event) => {
+                    await changeNameOrComment(event);
+                }}
+                    onRowSelected={(event) => {
+                    if (event.node && event.node.isSelected()) {
+                        const rowData = event.data;
+                        rowData['rowIndex'] = event.rowIndex; // Add index to rowData
+                        if (onRowSelected) {
+                            onRowSelected(rowData);
+                        }
+                    } else {
+                        // When a checkbox is unchecked, check if any other row is selected
+                        // before clearing the selectedRow state
+                        if (gridRef.current) {
+                            const selectedNodes = gridRef.current.api.getSelectedNodes();
+                            if (selectedNodes.length === 0) {
                                 if (onRowSelected) {
-                                    onRowSelected(rowData);
-                                }
-                            } else {
-                                // When a checkbox is unchecked, check if any other row is selected
-                                // before clearing the selectedRow state
-                                if (gridRef.current) {
-                                    const selectedNodes = gridRef.current.api.getSelectedNodes();
-                                    if (selectedNodes.length === 0) {
-                                        if (onRowSelected) {
-                                            onRowSelected(null);
-                                        }
-                                    }
+                                    onRowSelected(null);
                                 }
                             }
-                        }}
+                        }
+                    }
+                }}
                     />
 
                     {showConfirmDialog && event && (

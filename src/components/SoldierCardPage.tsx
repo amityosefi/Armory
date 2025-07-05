@@ -168,25 +168,15 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
 
         }
 
-        const mirrorHebrewSmart = (str: string): string => {
-            if (!str) return '';
-
-            const words = str.trim().split(/\s+/);
-
-            // Check if all words are Hebrew
-            const allHebrew = words.every(word =>
-                [...word].every(char => /[\u0590-\u05FF"״׳]/.test(char))
-            );
-
-            const transformedWords = words.map(word => {
-                const isHebrew = [...word].every(char => /[\u0590-\u05FF"״׳]/.test(char));
-                return isHebrew ? [...word].reverse().join('') : word;
-            });
-
-            // Reverse word order only if all words are Hebrew
-            const finalWords = allHebrew ? transformedWords.reverse() : transformedWords;
-
-            return finalWords.join(' ');
+        const mirrorHebrewSmart = (str: string) => {
+            if (str === null || str === undefined || str === '') return '';
+            return str
+                .split(/\s+/)
+                .map(word =>
+                    /[\u0590-\u05FF]/.test(word) ? word.split('').reverse().join('') : word
+                )
+                .reverse() // Reverse word order too
+                .join(' ');
         };
 
         const handleDownload = () => {
