@@ -98,7 +98,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/group/1/sheet/0/row/0" replace />;
+    return <Navigate to="/group/0/sheet/0/row/0" replace />;
   }
 
   return (
