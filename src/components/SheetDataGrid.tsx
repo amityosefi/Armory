@@ -185,6 +185,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     headerName: 'שם מלא',
                     pinned: 'right',
                     width: 150,
+                    filter: true,
                     editable: true,
                     filterParams: {
                         filterOptions: ['contains'],
