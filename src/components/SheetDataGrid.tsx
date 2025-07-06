@@ -8,6 +8,8 @@ import ComboBoxEditor from './ComboBoxEditor';
 import {useGoogleSheetData} from "./hooks/useGoogleSheetData";
 import {useParams, useNavigate} from 'react-router-dom';
 import type { RowStyle } from 'ag-grid-community';
+import { RowIndexWithCheckbox } from './RowIndexWithCheckbox';
+
 
 
 
@@ -128,38 +130,73 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         return ['מלאי אופטיקה', 'תקול לסדנא', 'מלאי נשקיה'].includes(selectedSheet.range);
     }
 
-    const columnDefs = incomingColumnDefs.map(col => {
-        const hoverExcludedFields = ['סוג_נשק', 'שם_מלא', 'הערות'];
-        const shouldEnableHover = !hoverExcludedFields.includes(col.field);
+    const columnDefs = [
+        // 🧠 First, map all columns except 'שם_מלא'
+        ...incomingColumnDefs
+            .filter(col => col.field !== 'שם_מלא')
+            .map(col => {
+                const hoverExcludedFields = ['סוג_נשק', 'הערות'];
+                const shouldEnableHover = !hoverExcludedFields.includes(col.field);
 
-        const columnWidths: Record<string, number> = {
-            'שם_מלא': 150,
-            'הודעה': 500,
-            'זמן': 170,
-            'שם_משתמש': 200,
-        };
+                const columnWidths: Record<string, number> = {
+                    'הודעה': 500,
+                    'זמן': 170,
+                    'שם_משתמש': 200,
+                };
 
-        const width = columnWidths[col.field] ?? 150;
+                const width = columnWidths[col.field] ?? 150;
 
-        return {
-            ...col,
-            editable: ['חתימה','הערות', 'שם_מלא'].includes(col.field),
-            pinned: col.field === 'שם_מלא' || col.field === 'שם_אמצעי' ? 'right' : undefined,
-            filterParams: {
-                filterOptions: ['contains'],
-                suppressAndOrCondition: false,
-            },
-            cellEditor: ['הערות','חתימה', 'שם_מלא'].includes(col.field) ? 'agTextCellEditor' : undefined,
-            cellEditorParams: ['חתימה','הערות', 'שם_מלא'].includes(col.field)
-                ? { maxLength: 100 }
-                : undefined,
-            cellClass: shouldEnableHover && isGroupSheet() || isStockSheet() ? 'hover-enabled' : undefined,
-            hide:
-                (col.field === 'חתימה' && selectedSheet.name !== 'טבלת נשקיה') ||
-                ['זמן_חתימה', 'פלאפון', 'מספר_אישי'].includes(col.field),
-            width: width,
-        };
-    });
+                return {
+                    ...col,
+                    editable: ['חתימה', 'הערות'].includes(col.field),
+                    pinned: col.field === 'שם_אמצעי' ? 'right' : undefined,
+                    filterParams: {
+                        filterOptions: ['contains'],
+                        suppressAndOrCondition: false,
+                    },
+                    cellEditor: ['הערות', 'חתימה'].includes(col.field) ? 'agTextCellEditor' : undefined,
+                    cellEditorParams: ['חתימה', 'הערות'].includes(col.field)
+                        ? { maxLength: 100 }
+                        : undefined,
+                    cellClass: shouldEnableHover && (isGroupSheet() || isStockSheet()) ? 'hover-enabled' : undefined,
+                    hide:
+                        (col.field === 'חתימה' && selectedSheet.name !== 'טבלת נשקיה') ||
+                        ['זמן_חתימה', 'פלאפון', 'מספר_אישי'].includes(col.field),
+                    width: width,
+                };
+            }),
+
+        ...(isGroupSheet()
+            ? [
+                {
+                    field: 'rowRealIndex',
+                    headerName: 'מס',
+                    pinned: 'right',
+                    width: 60,
+                    suppressMovable: true,
+                    sortable: false,
+                    filter: false,
+                    editable: false,
+                    valueGetter: (params: { node: { rowIndex: number } }) => params.node.rowIndex + 1,
+                    cellRenderer: RowIndexWithCheckbox, // ✅ use your custom renderer
+                },
+                {
+                    field: 'שם_מלא',
+                    headerName: 'שם מלא',
+                    pinned: 'right',
+                    width: 150,
+                    editable: true,
+                    filterParams: {
+                        filterOptions: ['contains'],
+                        suppressAndOrCondition: false,
+                    },
+                    cellEditor: 'agTextCellEditor',
+                    cellEditorParams: { maxLength: 100 },
+                    cellClass: isGroupSheet() || isStockSheet() ? 'hover-enabled' : undefined,
+                },
+            ]
+            : []),
+    ];
 
 
 
@@ -265,11 +302,11 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     // @ts-ignore
     async function onClickedOptic(event1: any): Promise<boolean> {
         // Redirect if first column is clicked
-        if (!isStockSheet() && selectedSheet.range !== 'תיעוד' && event1.colDef && event1.colDef.field === columnDefs[0].field) {
+        if ( event1.colDef && event1.colDef.field === 'שם_מלא') {
             navigate(`/sheet/${selectedSheet.range}/soldier/${event1.data['rowRealIndex'] + 2}`);
             return false;
         }
-        if (!isGroupSheet() && !isStockSheet() || ['סוג_נשק', 'שם_מלא', 'אמצעים', 'הערות'].includes(event1.colDef.field)) { // @ts-ignore
+        if (!isGroupSheet() && !isStockSheet() || ['סוג_נשק','rowRealIndex', 'שם_מלא', 'אמצעים', 'הערות'].includes(event1.colDef.field)) { // @ts-ignore
             return;
         }
         setEvent({
@@ -773,7 +810,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     enableRtl={true}
                     defaultColDef={{
                     // flex: 1,
-                    minWidth: 100,
+                    minWidth: 10,
                     sortable: true,
                     resizable: true,
                 }}
