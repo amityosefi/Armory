@@ -124,9 +124,13 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                         .filter((opt: { value: string; }) => opt.value?.trim());
                 }
 
+                // Sort alphabetically by value
+                values.sort((a: { value: string; }, b: { value: any; }) => a.value.localeCompare(b.value));
+
                 setSecondOptions(values);
             }
         }, [selectedOpticColumn, opticsData, weaponsData]);
+
 
 
         async function changeNameOrComment(fieldName: string) {
