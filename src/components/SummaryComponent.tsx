@@ -177,10 +177,9 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                     if (source === 'weapon') {
                         const weaponColIndex = headerRow.indexOf('סוג נשק');
                         const commentColIndex = headerRow.indexOf('הערות');
-
+                        let unitCount = 0;
+                        let unitStored = 0;
                         if (weaponColIndex !== -1) {
-                            let unitCount = 0;
-                            let unitStored = 0;
 
                             body.forEach((row: { [x: string]: string; }) => {
                                 const weapon = row[weaponColIndex];
@@ -199,7 +198,6 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                             total += unitCount;
                             storedCount += unitStored;
                         }
-
                 } else {
                         if (["M5", "מפרו", "מארס"].includes(type)) {
                             const opticColumnIndex = headerRow.indexOf('כוונת');
@@ -212,12 +210,6 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                                 count = body.filter((row: { [x: string]: string; }) => row[opticColIndex]?.trim()).length;
                             }
                         }
-                    }
-
-                    if (source === 'weapon') {
-                        row[allSheetsNames[idx]] = count;
-                        total += count;
-                    } else {
                         row[allSheetsNames[idx]] = count;
                         total += count;
                     }

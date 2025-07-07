@@ -130,21 +130,24 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         return ['מלאי אופטיקה', 'תקול לסדנא', 'מלאי נשקיה'].includes(selectedSheet.range);
     }
 
+    const hoverExcludedFields = ['סוג_נשק', 'הערות'];
+    const columnWidths: Record<string, number> = {
+        'הודעה': 500,
+        'זמן': 170,
+        'שם_משתמש': 200,
+    };
+
+// Get the index of 'הערות'
+    const heaarotIndex = incomingColumnDefs.findIndex(c => c.field === 'הערות');
+
     const columnDefs = [
-        // 🧠 First, map all columns except 'שם_מלא'
+        // Map and hide all columns after 'הערות' if isGroupSheet
         ...incomingColumnDefs
             .filter(col => col.field !== 'שם_מלא')
-            .map(col => {
-                const hoverExcludedFields = ['סוג_נשק', 'הערות'];
+            .map((col, idx) => {
                 const shouldEnableHover = !hoverExcludedFields.includes(col.field);
-
-                const columnWidths: Record<string, number> = {
-                    'הודעה': 500,
-                    'זמן': 170,
-                    'שם_משתמש': 200,
-                };
-
-                const width = columnWidths[col.field] ?? 150;
+                const width = columnWidths[col.field] ?? 100;
+                const isAfterHeaarot = idx >= heaarotIndex;
 
                 return {
                     ...col,
@@ -159,15 +162,39 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                         ? { maxLength: 100 }
                         : undefined,
                     cellClass: shouldEnableHover && (isGroupSheet() || isStockSheet()) ? 'hover-enabled' : undefined,
-                    hide:
+                    hide: (
                         (col.field === 'חתימה' && selectedSheet.name !== 'טבלת נשקיה') ||
-                        ['זמן_חתימה', 'פלאפון', 'מספר_אישי'].includes(col.field),
+                        ['זמן_חתימה', 'פלאפון', 'מספר_אישי'].includes(col.field) ||
+                        (isGroupSheet() && isAfterHeaarot)
+                    ),
                     width: width,
                 };
             }),
 
+        // 👇 Add one custom column that summarizes the hidden ones
         ...(isGroupSheet()
             ? [
+                {
+                    field: 'אמצעים',
+                    headerName: 'אמצעים',
+                    width: 600,
+                    filter: true,
+                    valueGetter: (params: any) => {
+                        const rowData = params.data;
+                        const result: string[] = [];
+
+                        incomingColumnDefs
+                            .slice(heaarotIndex + 1) // only columns after הערות
+                            .forEach(col => {
+                                const val = rowData?.[col.field];
+                                if (val?.toString().trim()) {
+                                    result.push(`${col.headerName || col.field}: ${val}`);
+                                }
+                            });
+
+                        return result.join(' | ');
+                    },
+                },
                 {
                     field: 'rowRealIndex',
                     headerName: 'מס',
@@ -178,7 +205,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     filter: false,
                     editable: false,
                     valueGetter: (params: { node: { rowIndex: number } }) => params.node.rowIndex + 1,
-                    cellRenderer: RowIndexWithCheckbox, // ✅ use your custom renderer
+                    cellRenderer: RowIndexWithCheckbox,
                 },
                 {
                     field: 'שם_מלא',
@@ -362,7 +389,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 anotherUpdate = {
                     sheetId: selectedSheet.id,
                     rowIndex: event.rowIndex + 1,
-                    colIndex: columnDefs.findIndex(col => col.field === 'סוג_נשק'),
+                    colIndex: incomingColumnDefs.findIndex(col => col.field === 'סוג_נשק'),
                     value: ""
                 }
             }
@@ -376,7 +403,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 {
                     sheetId: selectedSheet.id,
                     rowIndex: event.rowIndex + 1,
-                    colIndex: columnDefs.findIndex(col => col.headerName === colIndex),
+                    colIndex: incomingColumnDefs.findIndex(col => col.headerName === colIndex),
                     value: ""
                 }];
             if (anotherUpdate)
@@ -422,7 +449,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         const firstUpdate = {
             sheetId: selectedSheet.id,
             rowIndex: event.rowIndex + 1,
-            colIndex: columnDefs.findIndex(c => c.headerName === event.colName),
+            colIndex: incomingColumnDefs.findIndex(c => c.headerName === event.colName),
             value: option.value
         };
         updates.push(firstUpdate)
@@ -440,13 +467,13 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             updates.push({
                 sheetId: selectedSheet.id,
                 rowIndex: event.rowIndex + 1,
-                colIndex: columnDefs.findIndex(c => c.field === "סוג_נשק"),
+                colIndex: incomingColumnDefs.findIndex(c => c.field === "סוג_נשק"),
                 value: selectedWeapon
             })
             updates.push({
                 sheetId: selectedSheet.id,
                 rowIndex: event.rowIndex + 1,
-                colIndex: columnDefs.findIndex(c => c.field === "זמן_חתימה"),
+                colIndex: incomingColumnDefs.findIndex(c => c.field === "זמן_חתימה"),
                 value: new Date().toLocaleString('he-IL')
             })
 
@@ -455,7 +482,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             anotherUpdate = {
                 sheetId: 1158402644,
                 rowIndex: option.rowIndex,
-                colIndex: option.colIndex,
+                colIndex: incomingColumnDefs.findIndex(c => c.field === "סוג_נשק"),
                 value: ""
             };
 
@@ -597,7 +624,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 {
                     sheetId: 1689612813,
                     rowIndex: event.rowIndex + 1,
-                    colIndex: columnDefs.findIndex(col => col.headerName === event.colName),
+                    colIndex: incomingColumnDefs.findIndex(col => col.headerName === event.colName),
                     value: ""
                 }];
 

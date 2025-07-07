@@ -53,4 +53,38 @@
     height: 100%;
     text-align: center;
 }
+/* Example background classes for each group */
+.group-bg-א {
+    background-color: #fff0f0; /* soft red */
+}
+
+.group-bg-ב {
+    background-color: #f0ffff; /* soft cyan */
+}
+
+.group-bg-ג {
+    background-color: #f0fff0; /* soft green */
+}
+
+.group-bg-מסייעת {
+    background-color: #fffde7; /* soft yellow */
+}
+
+.group-bg-מכלול {
+    background-color: #f3e5f5; /* soft purple */
+}
+
+.group-bg-פלסם {
+    background-color: #fff3e0; /* soft orange */
+}
+
+.group-bg-אלון {
+    background-color: #e3f2fd; /* soft blue */
+}
+
+/* Smooth transition */
+.page-container {
+    transition: background-color 0.3s ease-in-out;
+    min-height: 100vh;
+}
 
