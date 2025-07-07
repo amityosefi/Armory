@@ -62,7 +62,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         {accessToken, range: encodedRange},
         {processData: false, enabled: !!accessToken && !!encodedRange}
     );
-
+    const backgroundClass = isGroupSheet() ? `group-bg-${selectedSheet.range}` : '';
     const navigate = useNavigate();
     const [newWeaponOrOpticName, setNewWeaponOrOpticName] = useState('');
     const [newSerialWeaponOrOpticName, setNewSerialWeaponOrOpticName] = useState('');
@@ -581,6 +581,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     );
 
     return (
+        // <div className={`page-container ${backgroundClass}`}>
         <div>
             <h2 className="text-xl font-semibold mb-4">{currentGroup.name}</h2>
 
