@@ -204,14 +204,14 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     sortable: false,
                     filter: false,
                     editable: false,
-                    valueGetter: (params: { node: { rowIndex: number } }) => params.node.rowIndex + 1,
+                    valueGetter: (params) => params.data.rowRealIndex + 1,
                     cellRenderer: RowIndexWithCheckbox,
                 },
                 {
                     field: 'שם_מלא',
                     headerName: 'שם מלא',
                     pinned: 'right',
-                    width: 150,
+                    width: 130,
                     filter: true,
                     editable: true,
                     filterParams: {
