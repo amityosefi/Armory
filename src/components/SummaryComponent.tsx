@@ -164,7 +164,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
 
         const processType = (nameList: string[], source: 'weapon' | 'optic') => {
             nameList.forEach(type => {
-                const row: Record<string, any> = { name: type };
+                const row: Record<string, any> = {name: type};
                 let total = 0;
                 let storedCount = 0;
 
@@ -186,28 +186,32 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                                 const comment = commentColIndex !== -1 ? row[commentColIndex]?.trim() : '';
 
                                 if (weapon === type) {
-                                    if (comment === 'מאופסן') {
+                                    if (comment === 'מאופסן')
                                         unitStored++;
-                                    } else {
-                                        unitCount++;
-                                    }
+                                    // else
+                                    unitCount++;
                                 }
+
                             });
 
                             row[allSheetsNames[idx]] = unitCount;
                             total += unitCount;
                             storedCount += unitStored;
                         }
-                } else {
+                    } else {
                         if (["M5", "מפרו", "מארס"].includes(type)) {
                             const opticColumnIndex = headerRow.indexOf('כוונת');
                             if (opticColumnIndex !== -1) {
-                                count = body.filter((row: { [x: string]: string; }) => row[opticColumnIndex]?.trim() === type).length;
+                                count = body.filter((row: {
+                                    [x: string]: string;
+                                }) => row[opticColumnIndex]?.trim() === type).length;
                             }
                         } else {
                             const opticColIndex = headerRow.indexOf(type);
                             if (opticColIndex !== -1) {
-                                count = body.filter((row: { [x: string]: string; }) => row[opticColIndex]?.trim()).length;
+                                count = body.filter((row: {
+                                    [x: string]: string;
+                                }) => row[opticColIndex]?.trim()).length;
                             }
                         }
                         row[allSheetsNames[idx]] = count;
@@ -238,7 +242,8 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                     return tikulBody.filter((r: any) => r[tikulIndex]?.trim()).length;
                 })();
                 row['מאופסן'] = storedCount;
-                row['סה"כ'] = total + stockCount + row["תקול לסדנא"] + storedCount;
+                // row['סה"כ'] = total + stockCount + row["תקול לסדנא"] + storedCount;
+                row['סה"כ'] = total + stockCount + row["תקול לסדנא"];
 
                 row['חתימה'] = (() => {
                     const summarySheetHeader = h?.values?.[0] || [];
@@ -337,7 +342,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                 field: 'מאופסן',
                 type: 'numericColumn',
                 width: 80,
-                cellStyle: { textAlign: 'center' },
+                cellStyle: {textAlign: 'center'},
                 headerClass: 'ag-right-aligned-header',
             },
             {
