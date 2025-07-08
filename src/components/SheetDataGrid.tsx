@@ -204,7 +204,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     sortable: false,
                     filter: false,
                     editable: false,
-                    valueGetter: (params) => params.data.rowRealIndex + 1,
+                    valueGetter: (params: { data: { rowRealIndex: number; }; }) => params.data.rowRealIndex + 1,
                     cellRenderer: RowIndexWithCheckbox,
                 },
                 {
