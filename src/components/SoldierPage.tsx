@@ -1,6 +1,6 @@
-// src/pages/SoldierCardPage.tsx
-import React, {useEffect, useState} from "react";
-import {useLocation, useNavigate, useParams} from "react-router-dom";
+// src/pages/SoldierPage.tsx
+import React, {useEffect, useState, Fragment} from "react";
+import { useNavigate, useParams} from "react-router-dom";
 import {useGoogleSheetData} from "./hooks/useGoogleSheetData";
 import Spinner from "./Spinner";
 import {sheetGroups} from "../constants";
@@ -8,12 +8,13 @@ import GoogleSheetsService from "../services/GoogleSheetsService";
 import {jsPDF} from "jspdf";
 import autoTable from "jspdf-autotable";
 import StatusMessageProps from "./feedbackFromBackendOrUser/StatusMessageProps";
+import StandaloneComboBox from "./StandaloneComboBox";
 
 interface SoldierCardPageProps {
     accessToken: string;
 }
 
-const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
+const SoldierPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
         // const location = useLocation();
 
         // @ts-ignore
@@ -51,8 +52,9 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
         const userEmail = localStorage.getItem('userEmail')
 
         const [selectedOpticColumn, setSelectedOpticColumn] = useState<{
-            label: string;
+            value: string;
             colIndex: number;
+            rowIndex: number;
         } | null>(null);
         const [selectedOpticPair, setSelectedOpticPair] = useState<string>('');
 
@@ -70,6 +72,11 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
 
         const navigate = useNavigate();
         const {sheetName, soldierIndex} = useParams();
+
+        const comboBoxOptions = filteredOpticOptions.map(opt => ({
+            label: opt.value,
+            value: opt.value,
+        }));
 
 
         const soldierRange = sheetName ? `${sheetName}!A${soldierIndex}:BBB${soldierIndex}` : '';
@@ -105,7 +112,7 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
             if (selectedOpticColumn !== null && opticsData?.values?.length && weaponsData.values?.length) {
                 let values;
                 // @ts-ignore
-                if (weaponsData.values[0].includes(selectedOpticColumn.label)) {
+                if (weaponsData.values[0].includes(selectedOpticColumn.value)) {
                     values = weaponsData.values.slice(1)
                         .map((row: any[], i: number) => ({
                             value: row[selectedOpticColumn.colIndex],
@@ -386,7 +393,6 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                     colIndex,
                 }));
             }
-
             // Step 4: update dropdown with merged options
             setFilteredOpticOptions([...filteredFromOptics, ...weaponDropdownOptions]);
             setSelectedOpticColumn(null);
@@ -399,12 +405,13 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
 
 
         async function handleChosenOpticToSign(selected: { value: string; rowIndex: number; colIndex: number }) {
-            const msg = 'החייל ' + row['שם מלא'] + ' חתם על ' + selectedOpticColumn?.label + ' עם מספר סידורי ' + selected?.value + ' מפלוגה ' + sheetName;
             if (!selected || !selectedOpticColumn) return;
+            const msg = 'החייל ' + row['שם מלא'] + ' חתם על ' + selectedOpticColumn?.value + ' עם מספר סידורי ' + selected?.value + ' מפלוגה ' + sheetName;
             const updates = [];
-            let colIndex = Object.keys(row).findIndex(c => c === selectedOpticColumn.label);
+            // @ts-ignore
+            let colIndex = Object.keys(row).findIndex(c => c === selectedOpticColumn.value);
             let sheetToDelete;
-            if (weaponsData.values[0].includes(selectedOpticColumn.label)) {
+            if (weaponsData.values[0].includes(selectedOpticColumn.value)) {
                 sheetToDelete = sheetId('מלאי נשקיה');
                 colIndex = Object.keys(row).findIndex(c => c === 'מסד');
                 updates.push({
@@ -417,7 +424,7 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                     sheetId: sheetId(sheetName),
                     rowIndex: parseInt(soldierIndex || '0', 10) - 1,
                     colIndex: Object.keys(row).findIndex(c => c === 'סוג נשק'),
-                    value: selectedOpticColumn.label
+                    value: selectedOpticColumn.value
                 })
             } else {
                 // @ts-ignore
@@ -611,54 +618,30 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                     )}
 
                     {filteredOpticOptions.length > 0 && (
-                        <div>
-                            <label className="block text-right font-medium mt-2">בחר סוג אמצעי</label>
-                            <select
-                                className="border p-2 rounded text-right"
-                                value={selectedOpticColumn?.label || ''}
-                                onChange={(e) => {
-                                    const selected = filteredOpticOptions.find(opt => opt.value === e.target.value);
-                                    if (selected) {
-                                        setSelectedOpticColumn({
-                                            label: selected.value,
-                                            colIndex: selected.colIndex
-                                        });
-                                    }
-                                }}
-                            >
-                                <option value="">בחר מסד</option>
-                                {filteredOpticOptions.map((opt, idx) => (
-                                    <option key={idx} value={opt.value}>{opt.value}</option>
-                                ))}
-                            </select>
-                        </div>
+                        <StandaloneComboBox
+                            label="בחר סוג אמצעי"
+                            placeholder="בחר אמצעי"
+                            options={filteredOpticOptions}
+                            value={selectedOpticColumn} // type: { rowIndex, colIndex, value } | null
+                            onChange={(opt) => setSelectedOpticColumn(opt)}
+                        />
+
                     )}
 
                     {selectedOpticColumn && secondOptions.length > 0 && (
-                        <div>
-                            <label className="block text-right font-medium mt-2">בחר מספר סידורי</label>
-                            <select
-                                className="border p-2 rounded text-right"
-                                value={selectedSecondOption?.value || ''}
-                                onChange={async (e) => {
-                                    const selected = secondOptions.find(opt => opt.value === e.target.value);
-                                    if (selected) {
-                                        setSelectedSecondOption({
-                                            value: selected.value,
-                                            rowIndex: selected.rowIndex,
-                                            colIndex: selected.colIndex
-                                        });
-                                        await handleChosenOpticToSign(selected);
-                                        refetch();
-                                    }
-                                }}
-                            >
-                                <option value="">בחר מספר</option>
-                                {secondOptions.map((opt, idx) => (
-                                    <option key={idx} value={opt.value}>{opt.value}</option>
-                                ))}
-                            </select>
-                        </div>
+                        <StandaloneComboBox
+                            label="בחר מספר סידורי"
+                            placeholder="בחר מספר"
+                            options={secondOptions} // pass full objects, not just strings
+                            value={selectedSecondOption} // full option object or null
+                            onChange={async (selected) => {
+                                setSelectedSecondOption(selected);
+                                await handleChosenOpticToSign(selected);
+                                refetch();
+                                refetchOptics();
+                            }}
+                        />
+
                     )}
                     {/* Info Card */}
                     <div className="mb-6 grid grid-cols-3 md:grid-cols-2 gap-6">
@@ -850,4 +833,4 @@ const SoldierCardPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
     }
 ;
 
-export default SoldierCardPage;
+export default SoldierPage;
