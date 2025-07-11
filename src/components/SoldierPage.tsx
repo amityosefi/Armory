@@ -515,13 +515,15 @@ const SoldierPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                 colIndex: rowCol.col,
                 value: opticValue
             };
-            updates.push(secondUpdate);
+            // updates.push(secondUpdate);
 
             const response = await GoogleSheetsService.updateCalls({
                 accessToken: accessToken,
                 updates: updates,
                 appendSheetId: 1070971626,
-                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
+                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]],
+                secondAppendSheetId: sheetId('מלאי אופטיקה'),
+                secondAppendValues: [GoogleSheetsService.generatePaddedArray(rowCol.col, opticValue)]
             });
 
             refetch();

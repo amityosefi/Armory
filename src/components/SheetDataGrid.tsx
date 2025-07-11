@@ -124,6 +124,23 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
         };
     }, [showComboBox]);
 
+    useEffect(() => {
+        setFilteredOptionsWeapon(
+            dropdownOptionsWeapon.filter(option =>
+                option.value.toLowerCase().includes(searchTextWeapon.toLowerCase())
+            )
+        );
+    }, [searchTextWeapon, dropdownOptionsWeapon]);
+
+    useEffect(() => {
+        setFilteredOptions(
+            dropdownOptions.filter(option =>
+                option.value.toLowerCase().includes(searchText.toLowerCase())
+            )
+        );
+    }, [searchText, dropdownOptions]);
+
+
     function isStockSheet() {
         return ['מלאי אופטיקה', 'תקול לסדנא', 'מלאי נשקיה'].includes(selectedSheet.range);
     }
@@ -391,12 +408,12 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 }
             }
             const update = [
-                {
-                    sheetId: sheetid,
-                    rowIndex: rowCol.row,
-                    colIndex: rowCol.col,
-                    value: event.value
-                },
+                // {
+                //     sheetId: sheetid,
+                //     rowIndex: rowCol.row,
+                //     colIndex: rowCol.col,
+                //     value: event.value
+                // },
                 {
                     sheetId: selectedSheet.id,
                     rowIndex: event.rowIndex + 1,
@@ -410,7 +427,10 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 accessToken: accessToken,
                 updates: update,
                 appendSheetId: 1070971626,
-                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
+                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]],
+                secondAppendSheetId: sheetid,
+                secondAppendValues: [GoogleSheetsService.generatePaddedArray(rowCol.col, event.value)],
+
             });
             setShowMessage(true);
             setIsSuccess(response);
@@ -685,21 +705,9 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 <div
                     ref={comboBoxRef}
                     className="absolute z-50 bg-white shadow-xl rounded-lg w-72 border border-gray-300 animate-fadeIn backdrop-blur-md"
-                    style={{top: 100, left: 100}} // Optional: make dynamic later
+                    style={{ top: 100, left: 100 }}
                     role="listbox"
                     tabIndex={0}
-                    onKeyDown={(e) => {
-                        if (e.key === 'ArrowDown') {
-                            setHighlightedIndexWeapon((prev) => Math.min(prev + 1, filteredOptions.length - 1));
-                        } else if (e.key === 'ArrowUp') {
-                            setHighlightedIndexWeapon((prev) => Math.max(prev - 1, 0));
-                        } else if (e.key === 'Enter' && highlightedIndex >= 0) {
-                            // @ts-ignore
-                            handleSelectWeaponOption(filteredOptionsWeapon[highlightedIndexWeapon]);
-                        } else if (e.key === 'Escape') {
-                            setShowComboBoxWeapon(false);
-                        }
-                    }}
                 >
                     <div className="p-2 border-b border-gray-200">
                         <input
@@ -708,8 +716,21 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                             className="w-full p-2 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
                             value={searchTextWeapon}
                             onChange={(e) => {
-                                setSearchText(e.target.value);
+                                setSearchTextWeapon(e.target.value);  // ✅ Correct variable!
                                 setHighlightedIndexWeapon(0);
+                            }}
+
+                            onKeyDown={(e) => {
+                                if (e.key === 'ArrowDown') {
+                                    setHighlightedIndexWeapon((prev) => Math.min(prev + 1, filteredOptionsWeapon.length - 1));
+                                } else if (e.key === 'ArrowUp') {
+                                    setHighlightedIndexWeapon((prev) => Math.max(prev - 1, 0));
+                                } else if (e.key === 'Enter' && highlightedIndexWeapon >= 0) {
+                                    // @ts-ignore
+                                    handleSelectWeaponOption(filteredOptionsWeapon[highlightedIndexWeapon]);
+                                } else if (e.key === 'Escape') {
+                                    setShowComboBoxWeapon(false);
+                                }
                             }}
                             autoFocus
                         />
@@ -719,7 +740,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                             <li
                                 key={`${option.value}`}
                                 className={`p-2 px-4 cursor-pointer transition-colors ${
-                                    idx === highlightedIndex
+                                    idx === highlightedIndexWeapon
                                         ? 'bg-blue-600 text-white'
                                         : 'hover:bg-gray-100'
                                 }`}
@@ -740,20 +761,9 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 <div
                     ref={comboBoxRef}
                     className="absolute z-50 bg-white shadow-xl rounded-lg w-72 border border-gray-300 animate-fadeIn backdrop-blur-md"
-                    style={{top: 100, left: 100}} // Optional: make dynamic later
+                    style={{ top: 100, left: 100 }}
                     role="listbox"
                     tabIndex={0}
-                    onKeyDown={(e) => {
-                        if (e.key === 'ArrowDown') {
-                            setHighlightedIndex((prev) => Math.min(prev + 1, filteredOptions.length - 1));
-                        } else if (e.key === 'ArrowUp') {
-                            setHighlightedIndex((prev) => Math.max(prev - 1, 0));
-                        } else if (e.key === 'Enter' && highlightedIndex >= 0) {
-                            handleSelectOption(filteredOptions[highlightedIndex]);
-                        } else if (e.key === 'Escape') {
-                            setShowComboBox(false);
-                        }
-                    }}
                 >
                     <div className="p-2 border-b border-gray-200">
                         <input
@@ -762,8 +772,19 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                             className="w-full p-2 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
                             value={searchText}
                             onChange={(e) => {
-                                setSearchText(e.target.value);
+                                setSearchText(e.target.value);  // ✅ Correct if `searchText` is defined
                                 setHighlightedIndex(0);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'ArrowDown') {
+                                    setHighlightedIndex((prev) => Math.min(prev + 1, filteredOptions.length - 1));
+                                } else if (e.key === 'ArrowUp') {
+                                    setHighlightedIndex((prev) => Math.max(prev - 1, 0));
+                                } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+                                    handleSelectOption(filteredOptions[highlightedIndex]);
+                                } else if (e.key === 'Escape') {
+                                    setShowComboBox(false);
+                                }
                             }}
                             autoFocus
                         />
@@ -789,6 +810,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 </div>
             )}
 
+
             {showMessage && (
                 <div>
                     <StatusMessageProps
@@ -812,9 +834,9 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                             onGridReady={(params: GridReadyEvent) => {
                                 gridApiRef.current = params.api;
                             }}
-                            components={{
-                                comboBoxEditor: ComboBoxEditor,
-                            }}
+                            // components={{
+                            //     comboBoxEditor: ComboBoxEditor,
+                            // }}
                             getRowClass={(params) => {
                                 // @ts-ignore
                                 return params.node.rowIndex % 2 === 0 ? 'ag-row-even' : 'ag-row-odd';
