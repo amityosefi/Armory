@@ -37,7 +37,7 @@ export default function StandaloneComboBox({
             );
 
     return (
-        <div className="w-72 text-right">
+        <div className="w-52 text-right">
             <label className="block mb-1 font-medium">{label}</label>
             <Combobox value={value} onChange={onChange} nullable>
                 <div className="relative">
