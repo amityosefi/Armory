@@ -7,10 +7,8 @@ import type {GridApi, GridReadyEvent} from 'ag-grid-community';
 import ComboBoxEditor from './ComboBoxEditor';
 import {useGoogleSheetData} from "./hooks/useGoogleSheetData";
 import {useParams, useNavigate} from 'react-router-dom';
-import type { RowStyle } from 'ag-grid-community';
-import { RowIndexWithCheckbox } from './RowIndexWithCheckbox';
-
-
+import type {RowStyle} from 'ag-grid-community';
+import {RowIndexWithCheckbox} from './RowIndexWithCheckbox';
 
 
 interface SheetDataGridProps {
@@ -159,7 +157,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     },
                     cellEditor: ['הערות', 'חתימה'].includes(col.field) ? 'agTextCellEditor' : undefined,
                     cellEditorParams: ['חתימה', 'הערות'].includes(col.field)
-                        ? { maxLength: 100 }
+                        ? {maxLength: 100}
                         : undefined,
                     cellClass: shouldEnableHover && (isGroupSheet() || isStockSheet()) ? 'hover-enabled' : undefined,
                     hide: (
@@ -219,13 +217,12 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                         suppressAndOrCondition: false,
                     },
                     cellEditor: 'agTextCellEditor',
-                    cellEditorParams: { maxLength: 100 },
+                    cellEditorParams: {maxLength: 100},
                     cellClass: isGroupSheet() || isStockSheet() ? 'hover-enabled' : undefined,
                 },
             ]
             : []),
     ];
-
 
 
     const gridApiRef = useRef<GridApi | null>(null);
@@ -330,11 +327,11 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     // @ts-ignore
     async function onClickedOptic(event1: any): Promise<boolean> {
         // Redirect if first column is clicked
-        if ( event1.colDef && event1.colDef.field === 'שם_מלא') {
+        if (event1.colDef && event1.colDef.field === 'שם_מלא') {
             navigate(`/sheet/${selectedSheet.range}/soldier/${event1.data['rowRealIndex'] + 2}`);
             return false;
         }
-        if (!isGroupSheet() && !isStockSheet() || ['סוג_נשק','rowRealIndex', 'שם_מלא', 'אמצעים', 'הערות'].includes(event1.colDef.field)) { // @ts-ignore
+        if (!isGroupSheet() && !isStockSheet() || ['סוג_נשק', 'rowRealIndex', 'שם_מלא', 'אמצעים', 'הערות'].includes(event1.colDef.field)) { // @ts-ignore
             return;
         }
         setEvent({
@@ -807,89 +804,91 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 <span>טוען בקשה...</span>
             </div>) : (
 
-                <div className="ag-theme-alpine w-full h-[70vh] ag-rtl">
-                    <AgGridReact
-                        className="ag-theme-alpine"
-                        ref={gridRef}
-                        onGridReady={(params: GridReadyEvent) => {
-                            gridApiRef.current = params.api;
-                        }}
-                        components={{
-                            comboBoxEditor: ComboBoxEditor,
-                        }}
-                        getRowClass={(params) => {
-                            // @ts-ignore
-                            return params.node.rowIndex % 2 === 0 ? 'ag-row-even' : 'ag-row-odd';
-                        }}
-                        getRowStyle={(params): RowStyle | undefined => {
-                            if (params.data?.הערות === 'מאופסן') {
-                                return { backgroundColor: '#ffe5e5' }; // ✅ This now matches RowStyle
-                            }
-                            return undefined;
-                        }}
-
-
-                    columnDefs={columnDefs}
-                    rowData={selectedSheet.range === 'תיעוד' ? [...rowData].reverse() : rowData}
-                    rowHeight={24} // 👈 Shrink row height
-                    headerHeight={28}
-                    stopEditingWhenCellsLoseFocus={true}
-                    domLayout="normal"
-                    enableRtl={true}
-                    defaultColDef={{
-                    // flex: 1,
-                    minWidth: 10,
-                    sortable: true,
-                    resizable: true,
-                }}
-                    rowSelection="single"
-                    isRowSelectable={() => isGroupSheet()}
-                    suppressRowClickSelection={true}
-                    onCellClicked={(event1) => {
-                    onClickedOptic(event1);
-                }}
-                    onCellValueChanged={async (event) => {
-                    await changeNameOrComment(event);
-                }}
-                    onRowSelected={(event) => {
-                    if (event.node && event.node.isSelected()) {
-                        const rowData = event.data;
-                        rowData['rowIndex'] = event.rowIndex; // Add index to rowData
-                        if (onRowSelected) {
-                            onRowSelected(rowData);
-                        }
-                    } else {
-                        // When a checkbox is unchecked, check if any other row is selected
-                        // before clearing the selectedRow state
-                        if (gridRef.current) {
-                            const selectedNodes = gridRef.current.api.getSelectedNodes();
-                            if (selectedNodes.length === 0) {
-                                if (onRowSelected) {
-                                    onRowSelected(null);
+                <div className="overflow-x-auto">
+                    <div className="ag-theme-alpine w-303 h-[70vh] ag-rtl">
+                        <AgGridReact
+                            className="ag-theme-alpine"
+                            ref={gridRef}
+                            onGridReady={(params: GridReadyEvent) => {
+                                gridApiRef.current = params.api;
+                            }}
+                            components={{
+                                comboBoxEditor: ComboBoxEditor,
+                            }}
+                            getRowClass={(params) => {
+                                // @ts-ignore
+                                return params.node.rowIndex % 2 === 0 ? 'ag-row-even' : 'ag-row-odd';
+                            }}
+                            getRowStyle={(params): RowStyle | undefined => {
+                                if (params.data?.הערות === 'מאופסן') {
+                                    return {backgroundColor: '#ffe5e5'}; // ✅ This now matches RowStyle
                                 }
-                            }
-                        }
-                    }
-                }}
-                    />
+                                return undefined;
+                            }}
 
-                    {showConfirmDialog && event && (
-                        <div>
-                            <ConfirmDialog
-                                isGroupSheet={isGroupSheet() ? 0 : selectedSheet.range === 'תקול לסדנא' ? 2 : 1}
-                                clickedCellInfo={event}
-                                onConfirm={() => {
-                                    if (isGroupSheet())
-                                        handleConfirmOpticCredit()
-                                    else if (selectedSheet.range === 'תקול לסדנא')
-                                        handleConfirmOpticStock()
-                                    else handleConfirmOpticSadna()
-                                }}
-                                onCancel={() => setShowConfirmDialog(false)}
-                                onRemoveItem={handleConfirmOpticDelete}
-                            />
-                        </div>
-                    )}
+
+                            columnDefs={columnDefs}
+                            rowData={selectedSheet.range === 'תיעוד' ? [...rowData].reverse() : rowData}
+                            rowHeight={24} // 👈 Shrink row height
+                            headerHeight={28}
+                            stopEditingWhenCellsLoseFocus={true}
+                            domLayout="normal"
+                            enableRtl={true}
+                            defaultColDef={{
+                                // flex: 1,
+                                minWidth: 10,
+                                sortable: true,
+                                resizable: true,
+                            }}
+                            rowSelection="single"
+                            isRowSelectable={() => isGroupSheet()}
+                            suppressRowClickSelection={true}
+                            onCellClicked={(event1) => {
+                                onClickedOptic(event1);
+                            }}
+                            onCellValueChanged={async (event) => {
+                                await changeNameOrComment(event);
+                            }}
+                            onRowSelected={(event) => {
+                                if (event.node && event.node.isSelected()) {
+                                    const rowData = event.data;
+                                    rowData['rowIndex'] = event.rowIndex; // Add index to rowData
+                                    if (onRowSelected) {
+                                        onRowSelected(rowData);
+                                    }
+                                } else {
+                                    // When a checkbox is unchecked, check if any other row is selected
+                                    // before clearing the selectedRow state
+                                    if (gridRef.current) {
+                                        const selectedNodes = gridRef.current.api.getSelectedNodes();
+                                        if (selectedNodes.length === 0) {
+                                            if (onRowSelected) {
+                                                onRowSelected(null);
+                                            }
+                                        }
+                                    }
+                                }
+                            }}
+                        />
+
+                        {showConfirmDialog && event && (
+                            <div>
+                                <ConfirmDialog
+                                    isGroupSheet={isGroupSheet() ? 0 : selectedSheet.range === 'תקול לסדנא' ? 2 : 1}
+                                    clickedCellInfo={event}
+                                    onConfirm={() => {
+                                        if (isGroupSheet())
+                                            handleConfirmOpticCredit()
+                                        else if (selectedSheet.range === 'תקול לסדנא')
+                                            handleConfirmOpticStock()
+                                        else handleConfirmOpticSadna()
+                                    }}
+                                    onCancel={() => setShowConfirmDialog(false)}
+                                    onRemoveItem={handleConfirmOpticDelete}
+                                />
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </>

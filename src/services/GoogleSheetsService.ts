@@ -292,8 +292,6 @@ static async searchAcrossAllSheets({
     }
 
 
-    // File: GoogleSheetsService.ts
-
     static async batchAppendRowsToSheets({
                                                       accessToken,
                                                       updates,

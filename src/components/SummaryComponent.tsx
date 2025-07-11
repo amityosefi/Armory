@@ -391,21 +391,24 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
 
 
     return (
-        <div
-            className="ag-theme-alpine"
-            style={{height: '600px', width: '100%', direction: 'rtl'}}
-        >
-            <AgGridReact<any>
-                rowData={rowData}
-                columnDefs={columnDefs}
-                rowHeight={20}
-                headerHeight={25}
-                defaultColDef={{
-                    resizable: true,
-                    // sortable: true,
-                }}
-            />
+        <div className="overflow-x-auto">
+            <div
+                className="ag-theme-alpine w-[1255px] h-[70vh] ag-rtl"
+                style={{ direction: 'rtl' }}
+            >
+                <AgGridReact<any>
+                    rowData={rowData}
+                    columnDefs={columnDefs}
+                    rowHeight={20}
+                    headerHeight={25}
+                    defaultColDef={{
+                        resizable: true,
+                        // sortable: true,
+                    }}
+                />
+            </div>
         </div>
+
     );
 };
 
