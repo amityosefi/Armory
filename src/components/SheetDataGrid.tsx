@@ -11,7 +11,6 @@ import type {RowStyle} from 'ag-grid-community';
 import {RowIndexWithCheckbox} from './RowIndexWithCheckbox';
 
 
-
 interface SheetDataGridProps {
     accessToken: string;
     columnDefs: any[];
@@ -97,8 +96,22 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     const navigate = useNavigate();
 
     const comboBoxRef = useRef<HTMLDivElement>(null);
+    const [selectedHeader, setSelectedHeader] = useState('');
+    const [headerOptions, setHeaderOptions] = useState<string[]>([]);
 
     const savedFilterRef = useRef<any>(null);
+
+    useEffect(() => {
+        if (incomingColumnDefs && incomingColumnDefs.length > 0) {
+            const headers = incomingColumnDefs
+                .map((col) => col.headerName)
+                .filter(Boolean)
+                .sort((a, b) => a.localeCompare(b));
+
+            setHeaderOptions(headers);
+        }
+    }, [incomingColumnDefs]);
+
     useEffect(() => {
         if (gridApiRef.current && savedFilterRef.current) {
             gridApiRef.current.setFilterModel(savedFilterRef.current);
@@ -145,6 +158,22 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
     function isStockSheet() {
         return ['מלאי אופטיקה', 'תקול לסדנא', 'מלאי נשקיה'].includes(selectedSheet.range);
     }
+
+    const scrollToColumnByHeader = (headerName: string) => {
+        const gridApi = gridApiRef.current;
+        if (!gridApi) return;
+
+        const col = gridApi
+            .getAllGridColumns()
+            .find((c) => c.getColDef().headerName === headerName);
+
+        if (col) {
+            gridApi.ensureColumnVisible(col.getColId());
+        } else {
+            console.warn(`Column with header "${headerName}" not found.`);
+        }
+    };
+
 
     const hoverExcludedFields = ['סוג_נשק', 'הערות'];
     const columnWidths: Record<string, number> = {
@@ -710,7 +739,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 <div
                     ref={comboBoxRef}
                     className="absolute z-50 bg-white shadow-xl rounded-lg w-72 border border-gray-300 animate-fadeIn backdrop-blur-md"
-                    style={{ top: 100, left: 100 }}
+                    style={{top: 100, left: 100}}
                     role="listbox"
                     tabIndex={0}
                 >
@@ -766,7 +795,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 <div
                     ref={comboBoxRef}
                     className="absolute z-50 bg-white shadow-xl rounded-lg w-72 border border-gray-300 animate-fadeIn backdrop-blur-md"
-                    style={{ top: 100, left: 100 }}
+                    style={{top: 100, left: 100}}
                     role="listbox"
                     tabIndex={0}
                 >
@@ -825,6 +854,27 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     />
                 </div>
             )}
+            {isStockSheet() && (
+                <div className="mb-2">
+                    <select
+                        value={selectedHeader}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            setSelectedHeader(value);
+                            scrollToColumnByHeader(value);
+                        }}
+                        className="p-2 border border-gray-300 rounded w-64 text-sm"
+                    >
+                        <option value="">🔽 בחר כותרת עמודה...</option>
+                        {headerOptions.map((header) => (
+                            <option key={header} value={header}>
+                                {header}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
 
             {isLoading ? (<div className="flex items-center gap-2 mt-2 text-blue-600">
                 <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -832,13 +882,14 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             </div>) : (
 
                 <div className="overflow-x-auto">
-                    <div className={`ag-theme-alpine h-[70vh] ag-rtl ${isGroupSheet() ? 'w-[303]' : 'w-full'}`}>
+                    <div className="ag-theme-alpine w-full h-[70vh] ag-rtl">
                         <AgGridReact
                             className="ag-theme-alpine"
                             ref={gridRef}
                             onGridReady={(params: GridReadyEvent) => {
                                 gridApiRef.current = params.api;
                             }}
+
                             // components={{
                             //     comboBoxEditor: ComboBoxEditor,
                             // }}
