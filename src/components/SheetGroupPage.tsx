@@ -19,6 +19,7 @@ import PromptNewSerialWeaponOrOptic from "./PromptNewSerialWeaponOrOptic";
 import AddOpticToGroupColumn from "./AddOpticToGroupColumn";
 import {useNavigate} from "react-router-dom";
 import SummaryComponent from "./SummaryComponent";
+import Equipment from "./Equipment";
 
 interface SheetGroupPageProps {
     accessToken: string;
@@ -701,7 +702,9 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                 </div>
             ) : [ 'טבלת נשקיה'].includes(selectedSheet.name) ? (
                 <SummaryComponent accessToken={accessToken}/>
-
+            ) : selectedSheet.name.includes('ציוד') ? (
+                    <Equipment accessToken={accessToken} selectedSheet={selectedSheet}
+                    />
             ) : sheetData.length > 0 || isCreditingInProgress ? (
                 <SheetDataGrid accessToken={accessToken} columnDefs={columnDefs} rowData={sheetData}
                                selectedSheet={selectedSheet} onRowSelected={setSelectedRow}

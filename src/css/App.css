@@ -87,4 +87,16 @@
     transition: background-color 0.3s ease-in-out;
     min-height: 100vh;
 }
+/* Center headers in this specific grid */
+.equipment-grid.ag-theme-alpine.ag-rtl .ag-header-cell-label {
+    justify-content: center !important;
+    direction: rtl !important;
+    text-align: center !important;
+}
+
+/* Center cells in this specific grid */
+.equipment-grid.ag-theme-alpine.ag-rtl .ag-cell {
+    direction: rtl;
+    text-align: center;
+}
 

@@ -364,7 +364,6 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
             {
                 headerName: 'חתימה',
                 field: 'חתימה',
-                editable: true,
                 type: 'numericColumn',
                 width: 80,
                 cellStyle: {textAlign: 'center', backgroundColor: '#fff7d1'},
@@ -380,7 +379,7 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
                     return {
                         color: val < 0 ? 'red' : 'green',
                         fontWeight: 'bold',
-                        textAlign: 'right'
+                        textAlign: 'center'
                     };
                 },
                 headerClass: 'ag-right-aligned-header',
@@ -393,13 +392,14 @@ const SummaryComponent = ({accessToken}: { accessToken: string }) => {
     return (
         <div className="overflow-x-auto">
             <div
-                className="ag-theme-alpine w-[1255px] h-[70vh] ag-rtl"
+                className="ag-theme-alpine w-full h-[70vh] ag-rtl"
                 style={{ direction: 'rtl' }}
             >
-                <AgGridReact<any>
+                <AgGridReact
                     rowData={rowData}
                     columnDefs={columnDefs}
                     rowHeight={20}
+                    domLayout="normal"
                     headerHeight={25}
                     defaultColDef={{
                         resizable: true,
