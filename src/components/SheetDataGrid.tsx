@@ -11,6 +11,7 @@ import type {RowStyle} from 'ag-grid-community';
 import {RowIndexWithCheckbox} from './RowIndexWithCheckbox';
 
 
+
 interface SheetDataGridProps {
     accessToken: string;
     columnDefs: any[];
@@ -161,7 +162,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             .filter(col => col.field !== 'שם_מלא')
             .map((col, idx) => {
                 const shouldEnableHover = !hoverExcludedFields.includes(col.field);
-                const width = columnWidths[col.field] ?? 100;
+                const width = columnWidths[col.field] ?? 120;
                 const isAfterHeaarot = idx >= heaarotIndex;
 
                 return {
@@ -584,12 +585,12 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
             const rowCol = GoogleSheetsService.findInsertIndex(sandaData.values, event.colName);
             const update = [
-                {
-                    sheetId: 1689612813,
-                    rowIndex: rowCol.row,
-                    colIndex: rowCol.col,
-                    value: event.value
-                },
+                // {
+                //     sheetId: 1689612813,
+                //     rowIndex: rowCol.row,
+                //     colIndex: rowCol.col,
+                //     value: event.value
+                // },
                 {
                     sheetId: selectedSheet.id,
                     rowIndex: event.rowIndex + 1,
@@ -601,7 +602,9 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 accessToken: accessToken,
                 updates: update,
                 appendSheetId: 1070971626,
-                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
+                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]],
+                secondAppendSheetId: 1689612813,
+                secondAppendValues: [GoogleSheetsService.generatePaddedArray(rowCol.col, event.value)],
             });
             setShowMessage(true);
             setIsSuccess(response);
@@ -632,12 +635,12 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
 
             const rowCol = GoogleSheetsService.findInsertIndex(opticsData.values, event.colName);
             const update = [
-                {
-                    sheetId: sheetTofireId,
-                    rowIndex: rowCol.row,
-                    colIndex: rowCol.col,
-                    value: event.value
-                },
+                // {
+                //     sheetId: sheetTofireId,
+                //     rowIndex: rowCol.row,
+                //     colIndex: rowCol.col,
+                //     value: event.value
+                // },
                 {
                     sheetId: 1689612813,
                     rowIndex: event.rowIndex + 1,
@@ -649,7 +652,9 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 accessToken: accessToken,
                 updates: update,
                 appendSheetId: 1070971626,
-                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
+                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]],
+                secondAppendSheetId: sheetTofireId,
+                secondAppendValues: [GoogleSheetsService.generatePaddedArray(rowCol.col, event.value)],
             });
             setShowMessage(true);
             setIsSuccess(response);
@@ -827,7 +832,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             </div>) : (
 
                 <div className="overflow-x-auto">
-                    <div className="ag-theme-alpine w-303 h-[70vh] ag-rtl">
+                    <div className={`ag-theme-alpine h-[70vh] ag-rtl ${isGroupSheet() ? 'w-[303]' : 'w-full'}`}>
                         <AgGridReact
                             className="ag-theme-alpine"
                             ref={gridRef}
