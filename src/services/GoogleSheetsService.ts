@@ -375,6 +375,12 @@ static async searchAcrossAllSheets({
         return true;
     }
 
+    static generatePaddedArray(colIndex: number, value: string): string[] {
+        const result = new Array(colIndex + 1).fill("");
+        result[colIndex] = value;
+        return result;
+    }
+
     static findInsertIndex(data: string[][], headerName: string): { row: number, col: number } {
         const headerRow = data[0];
         const colIndex = headerRow.indexOf(headerName);
