@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from "react";
+import React, {useEffect, useRef, useMemo, useState} from "react";
 import {AgGridReact} from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
@@ -15,8 +15,6 @@ interface EquipmentProps {
     };
 }
 
-const SHEET_COLUMNS = ["פריט", "כמות", "חייל חותם", "חייל מחתים", "זמן ביצוע"];
-
 const Equipment: React.FC<EquipmentProps> = ({accessToken, selectedSheet}) => {
     const {
         data: sheetQueryData,
@@ -32,12 +30,15 @@ const Equipment: React.FC<EquipmentProps> = ({accessToken, selectedSheet}) => {
             enabled: !!accessToken
         }
     );
+    const summaryGridRef = useRef<any>(null);
+    const mainGridRef = useRef<any>(null);
 
     const [columnDefs, setColumnDefs] = useState<any[]>([]);
     const [sheetData, setSheetData] = useState<any[]>([]);
     const [showMessage, setShowMessage] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [message, setMessage] = useState('');
+    const [itemOptions, setItemOptions] = useState<string[]>([]);
 
     useEffect(() => {
         if (sheetQueryData && !isLoading) {
@@ -47,36 +48,16 @@ const Equipment: React.FC<EquipmentProps> = ({accessToken, selectedSheet}) => {
                 return;
             }
 
-            const { columnDefs: cols, rowData } = GoogleSheetsService.processSheetData(sheetQueryData);
+            const {columnDefs: cols, rowData} = GoogleSheetsService.processSheetData(sheetQueryData);
 
-            // Add fixed width and disable flex for first column if exists
-            if (cols.length > 0) {
-                cols[0] = {
-                    ...cols[0],
-                    width: 180,
-                    flex: 0
-                };
-            }
+            const alignedCols = cols.map((col: { field: string }) => ({
+                ...col,
+                width: col.field === "פריט" ? 180 : undefined,
+                flex: col.field === "פריט" ? 0 : undefined,
+                headerClass: 'rtl-header',
+                cellStyle: {textAlign: 'center'},
+            }));
 
-            // Map columns to add headerClass and cellStyle, and fix "פריט" column width too
-            const alignedCols = cols.map((col: { field: string; }) => {
-                if (col.field === "פריט") {
-                    return {
-                        ...col,
-                        width: 180,    // fixed width
-                        flex: 0,       // disable flex for fixed width
-                        headerClass: 'rtl-header',
-                        cellStyle: { textAlign: 'center' },
-                    };
-                }
-                return {
-                    ...col,
-                    headerClass: 'rtl-header',
-                    cellStyle: { textAlign: 'center' },
-                };
-            });
-
-            // Reverse once, only on the final alignedCols
             setColumnDefs(alignedCols.reverse());
 
             const processed = rowData.map((row: any, index: number) => ({
@@ -87,16 +68,33 @@ const Equipment: React.FC<EquipmentProps> = ({accessToken, selectedSheet}) => {
         }
     }, [sheetQueryData, isLoading]);
 
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            if (mainGridRef.current) {
+                const gridBody = mainGridRef.current.api?.gridBodyCtrl?.eBodyHorizontalScrollViewport;
+                if (gridBody) {
+                    gridBody.scrollLeft = gridBody.scrollWidth;
+                }
+            }
+        }, 100);
+        return () => clearTimeout(timeout);
+    }, [columnDefs, sheetData]);
+
 
 
     const itemBalances = useMemo(() => {
         const balances: Record<string, number> = {};
+        const itemsSet = new Set<string>();
+
         sheetData.forEach(row => {
             const item = row["פריט"];
             const qty = Number(row["כמות"]) || 0;
             if (!item) return;
+            itemsSet.add(item);
             balances[item] = (balances[item] || 0) + qty;
         });
+
+        setItemOptions(Array.from(itemsSet));
         return balances;
     }, [sheetData]);
 
@@ -104,8 +102,6 @@ const Equipment: React.FC<EquipmentProps> = ({accessToken, selectedSheet}) => {
         const msg = 'פריט חדש נוסף';
         if (!row) return;
         row[1] = String(row[1]);
-        console.log(selectedSheet.name)
-        console.log(selectedSheet.name)
 
         const response = await GoogleSheetsService.updateCalls({
             accessToken: accessToken,
@@ -146,22 +142,16 @@ const Equipment: React.FC<EquipmentProps> = ({accessToken, selectedSheet}) => {
         const quantity = Number(form.creditQuantity.value);
         const signedAmount = itemBalances[item] || 0;
         const timestamp = new Date().toLocaleString('he-IL');
+        const signer = form.signer.value.trim();
+        const signedBy = form.signedBy.value.trim();
 
-        if (!item || !quantity) {
-            alert("נא למלא את כל השדות");
+        if (!item || !quantity || !signer || !signedBy) {
+            alert("נא למלא את כל השדות כולל חותם ומחתים");
             return;
         }
 
         if (quantity > signedAmount) {
             alert("אי אפשר לזכות יותר ממה שחתמו");
-            return;
-        }
-
-        const signer = form.signer.value.trim();
-        const signedBy = form.signedBy.value.trim();
-
-        if (!signer || !signedBy) {
-            alert("נא למלא גם את שם החותם והמחַתים");
             return;
         }
 
@@ -176,67 +166,97 @@ const Equipment: React.FC<EquipmentProps> = ({accessToken, selectedSheet}) => {
                 <StatusMessageProps isSuccess={isSuccess} message={message} onClose={() => setShowMessage(false)}/>
             )}
 
-            {/* Signing Form */}
-            <form onSubmit={handleSign} className="space-x-2 rtl:space-x-reverse">
-                <input name="item" placeholder="פריט"/>
-                <input name="quantity" placeholder="כמות" type="number"/>
-                <input name="signer" placeholder="חייל חותם"/>
-                <input name="signedBy" placeholder="חייל מחתים"/>
+            {/* Signing Form with ComboBox */}
+            <form onSubmit={handleSign} className="space-x-2 rtl:space-x-reverse flex flex-wrap items-center gap-2">
+                <input list="items" name="item" placeholder="פריט" className="border px-2 py-1 rounded"/>
+                <datalist id="items">
+                    {itemOptions.map((item, i) => (
+                        <option key={i} value={item}/>
+                    ))}
+                </datalist>
+                <input name="quantity" placeholder="כמות" type="number" className="border px-2 py-1 rounded"/>
+                <input name="signer" placeholder="חייל חותם" className="border px-2 py-1 rounded"/>
+                <input name="signedBy" placeholder="חייל מחתים" className="border px-2 py-1 rounded"/>
                 <button type="submit" className="bg-green-300 px-3 py-1 rounded">חתום</button>
             </form>
 
             {/* Credit Form */}
-            <form onSubmit={handleCredit} className="space-x-2 rtl:space-x-reverse">
-                <select name="creditItem">
+            <form onSubmit={handleCredit} className="space-x-2 rtl:space-x-reverse flex flex-wrap items-center gap-2">
+                <select name="creditItem" className="border px-2 py-1 rounded">
                     {Object.entries(itemBalances)
                         .filter(([_, qty]) => qty > 0)
                         .map(([item, qty]) => (
                             <option key={item} value={item}>{item} ({qty})</option>
                         ))}
                 </select>
-                <input name="creditQuantity" placeholder="כמות לזיכוי" type="number"/>
-                <input name="signer" placeholder="חייל חותם"/>
-                <input name="signedBy" placeholder="חייל מחתים"/>
+                <input name="creditQuantity" placeholder="כמות לזיכוי" type="number"
+                       className="border px-2 py-1 rounded"/>
+                <input name="signer" placeholder="חייל חותם" className="border px-2 py-1 rounded"/>
+                <input name="signedBy" placeholder="חייל מחתים" className="border px-2 py-1 rounded"/>
                 <button type="submit" className="bg-red-300 px-3 py-1 rounded">זכה</button>
             </form>
 
-            {/* Signing Summary Table */}
-            <table className="min-w-full border-collapse border border-gray-300 rtl text-right mb-4">
-                <thead>
-                <tr>
-                    <th className="border border-gray-300 px-2 py-1">פריט</th>
-                    <th className="border border-gray-300 px-2 py-1">כמות</th>
-                </tr>
-                </thead>
-                <tbody>
-                {Object.entries(itemBalances)
-                    .filter(([_, qty]) => qty > 0)
-                    .map(([item, qty]) => (
-                        <tr key={item} className="hover:bg-gray-100">
-                            <td className="border border-gray-300 px-2 py-1">{item}</td>
-                            <td className="border border-gray-300 px-2 py-1">{qty}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            {/* Summary Table as AG Grid */}
+            {/* Summary AG Grid aligned right */}
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="ag-theme-alpine w-[620px] h-[30vh] ag-rtl">
+                    <AgGridReact
+                        ref={summaryGridRef}
+                        rowData={Object.entries(itemBalances)
+                            .filter(([_, qty]) => qty > 0)
+                            .map(([item, qty]) => {
+                                const lastSigner = [...sheetData]
+                                    .reverse()
+                                    .find(row => row["פריט"] === item && row["חייל_חותם"])?.["חייל_חותם"] || "";
+                                return { פריט: item, כמות: qty, "חייל חותם": lastSigner };
+                            })}
+                        columnDefs={[
+                            {
+                                headerName: "חייל חותם",
+                                field: "חייל חותם",
+                                sortable: true,
+                                filter: true,
+                                headerClass: 'rtl-header',
+                                cellStyle: { textAlign: 'center' }
+                            },
+                            {
+                                headerName: "כמות",
+                                field: "כמות",
+                                sortable: true,
+                                filter: true,
+                                headerClass: 'rtl-header',
+                                cellStyle: { textAlign: 'center' }
+                            },
+                            {
+                                headerName: "פריט",
+                                field: "פריט",
+                                sortable: true,
+                                filter: true,
+                                headerClass: 'rtl-header',
+                                cellStyle: { textAlign: 'center' }
+                            },
+                        ]}
+                        domLayout="normal"
+                        defaultColDef={{ resizable: true, sortable: true, filter: true }}
+                    />
+                </div>
+            </div>
 
-            <br/><br/><br/>
-
-            {/* AG Grid Table */
-            }
-            <div className="ag-theme-alpine w-full h-[70vh] ag-rtl equipment-grid" style={{ direction: "rtl" }}>
-                <AgGridReact
-                    rowData={sheetData}
-                    columnDefs={columnDefs}
-                    rowHeight={25}
-                    headerHeight={30}
-                    domLayout="normal"
-                    defaultColDef={{ resizable: true, sortable: true }}
-                />
+            {/* Main AG Grid aligned right */}
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="ag-theme-alpine w-[1000px] h-[20vh] ag-rtl equipment-grid" style={{ direction: "rtl" }}>
+                    <AgGridReact
+                        ref={mainGridRef}
+                        rowData={sheetData}
+                        columnDefs={columnDefs}
+                        domLayout="normal"
+                        defaultColDef={{ resizable: true, sortable: true, filter: true }}
+                    />
+                </div>
             </div>
         </div>
-    )
-        ;
+
+            );
 };
 
 export default Equipment;

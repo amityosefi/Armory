@@ -4,7 +4,6 @@
 }
 
 /* Load Tailwind layers globally (utilities and components) */
-@tailwind components;
 @tailwind utilities;
 
 /* ---- Ag-Grid Custom Styles ---- */
@@ -99,4 +98,9 @@
     direction: rtl;
     text-align: center;
 }
-
+.ag-header-cell-label {
+    justify-content: center;
+}
+.min-h-screen {
+    min-height: 35vh;
+}

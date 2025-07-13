@@ -907,8 +907,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                                 }
                                 return undefined;
                             }}
-
-
                             columnDefs={columnDefs}
                             rowData={selectedSheet.range === 'תיעוד' ? [...rowData].reverse() : rowData}
                             rowHeight={24} // 👈 Shrink row height
