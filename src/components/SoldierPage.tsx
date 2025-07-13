@@ -262,7 +262,7 @@ const SoldierPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
 
             doc.setFontSize(12);
             notes.forEach((line, i) => {
-                doc.text(`${line} •`, pageWidth - margin, y + i * 8, {align: 'right'});
+                doc.text(`${mirrorHebrewSmart(line)} •`, pageWidth - margin, y + i * 8, {align: 'right'});
             });
 
 
