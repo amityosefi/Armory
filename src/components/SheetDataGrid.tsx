@@ -224,6 +224,10 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     headerName: 'אמצעים',
                     width: 600,
                     filter: true,
+                    filterParams: {
+                        filterOptions: ['contains'],
+                        suppressAndOrCondition: false,
+                    },
                     valueGetter: (params: any) => {
                         const rowData = params.data;
                         const result: string[] = [];
@@ -903,8 +907,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                                 }
                                 return undefined;
                             }}
-
-
                             columnDefs={columnDefs}
                             rowData={selectedSheet.range === 'תיעוד' ? [...rowData].reverse() : rowData}
                             rowHeight={24} // 👈 Shrink row height

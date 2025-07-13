@@ -6,6 +6,7 @@ interface TabsNavigationProps {
     activeTabIndex: number;
     onTabChange: (index: number) => void;
     creditButton?: React.ReactNode;
+    storedButton?: React.ReactNode;
     downloadedData?: React.ReactNode;
     assignWeaponButton?: React.ReactNode;
     addWeaponOrOptic?: React.ReactNode;
@@ -21,6 +22,7 @@ function TabsNavigation({
                             activeTabIndex,
                             onTabChange,
                             creditButton,
+                            storedButton,
                             downloadedData,
                             assignWeaponButton,
                             addWeaponOrOptic,
@@ -91,6 +93,7 @@ function TabsNavigation({
 
             <div className="flex items-center space-x-2">
                 {downloadedData}
+                {storedButton}
                 {creditButton}
                 {assignWeaponButton}
                 {addWeaponOrOptic}

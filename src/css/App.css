@@ -4,7 +4,6 @@
 }
 
 /* Load Tailwind layers globally (utilities and components) */
-@tailwind components;
 @tailwind utilities;
 
 /* ---- Ag-Grid Custom Styles ---- */
@@ -87,4 +86,21 @@
     transition: background-color 0.3s ease-in-out;
     min-height: 100vh;
 }
+/* Center headers in this specific grid */
+.equipment-grid.ag-theme-alpine.ag-rtl .ag-header-cell-label {
+    justify-content: center !important;
+    direction: rtl !important;
+    text-align: center !important;
+}
 
+/* Center cells in this specific grid */
+.equipment-grid.ag-theme-alpine.ag-rtl .ag-cell {
+    direction: rtl;
+    text-align: center;
+}
+.ag-header-cell-label {
+    justify-content: center;
+}
+.min-h-screen {
+    min-height: 35vh;
+}
