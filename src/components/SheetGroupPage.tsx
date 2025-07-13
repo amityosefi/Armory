@@ -144,7 +144,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     }, [sheetQueryData, isLoading]);
 
 
-
     const handleTabChange = (newSheetIndex: number) => {
         setActiveTabIndex(newSheetIndex);
         setSelectedRow(null);
@@ -163,7 +162,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     const handleConfirmNewSoldier = async () => {
         let msg = 'החייל ' + formValues.fullName;
         setShowDialog(false);
-        if (formValues.weaponName){
+        if (formValues.weaponName) {
             msg += ' הוחתם על נשק ' + formValues.weaponName + ' מסד ' + formValues.serialNumber + ' ';
         }
         if (formValues.intentionName)
@@ -288,7 +287,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     };
 
 
-
     async function handleNewWeaponOrOptic() {
         setIsCreditingInProgress(true);
         const updates = [{
@@ -385,7 +383,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         // @ts-ignore
         const isWeaponSight = ['M5', 'מפרו', 'מארס', 'מצפן', 'משקפת'].includes(chosenWeaponOrOptic);
         if (!isWeaponSight)
-             res = await GoogleSheetsService.searchAcrossAllSheets({
+            res = await GoogleSheetsService.searchAcrossAllSheets({
                 searchValue: newSerialWeaponOrOpticName,
                 accessToken,
             });
@@ -437,6 +435,91 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         refetchWeapons();
     }
 
+    async function handleStoredSoldier(selectedRow: any) {
+
+//         const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+//
+//         doc.addFont('NotoSansHebrew-normal.ttf', 'NotoSansHebrew', 'normal');
+//         doc.setFont('NotoSansHebrew');
+//
+//         const tablesPerPage = 12;
+//         const tablesPerColumn = 4;
+//         const rowHeight = 65; // height per table including margin between
+//         const columnX = [10, 75, 140]; // X positions for 3 columns
+//
+//         const data = sheetQueryData.values;
+//
+//         data.forEach((row, index) => {
+//             const indexInPage = index % tablesPerPage;
+//             const column = Math.floor(indexInPage / tablesPerColumn);
+//             const positionInColumn = indexInPage % tablesPerColumn;
+//
+//             if (indexInPage === 0 && index !== 0) {
+//                 doc.addPage();
+//             }
+//             const startY = 10 + positionInColumn * rowHeight;
+//             const startX = columnX[column];
+//
+//             autoTable(doc, {
+//                 startY,
+//                 margin: { left: startX },
+//                 tableLineWidth: 0.4,
+//                 body: [
+//                     [mirrorHebrewSmart(selectedSheet.name)],
+//                     [mirrorHebrewSmart(row[0])],
+//                     [mirrorHebrewSmart(row[5])],
+//                     [row[7]],
+//                     [mirrorHebrewSmart(row[6])],
+//                     [String(index)],
+//                 ],
+//                 styles: {
+//                     font: 'NotoSansHebrew',
+//                     fontSize: 15,
+//                     halign: 'right',
+//                     textColor: 0,
+//                     lineWidth: 0.4,
+//                 },
+//                 bodyStyles: {
+//                     textDirection: 'rtl',
+//                     valign: 'middle',
+//                 },
+//                 tableWidth: 60,
+//                 theme: 'grid',
+//             });
+//         });
+//
+//         doc.save('soldiers.pdf');
+
+
+        setIsCreditingInProgress(true);
+        let msg = 'החייל ' + selectedRow['שם_מלא'] + ' ';
+        let comment = '';
+        if (selectedRow['הערות'] === 'מאופסן') {
+            msg += 'לקח נשק ' + selectedRow['סוג_נשק'] + ' ' + selectedRow['מסד'] + ' מאפסון';
+        } else {
+            msg += 'איפסן נשק ' + selectedRow['סוג_נשק'] + ' ' + selectedRow['מסד'];
+            comment = 'מאופסן';
+        }
+        const userEmail = localStorage.getItem('userEmail');
+        const response = await GoogleSheetsService.updateCalls({
+            accessToken: accessToken,
+            updates: [{
+                sheetId: selectedSheet.id,
+                rowIndex: selectedRow['rowRealIndex'] + 1,
+                colIndex: sheetQueryData.values[0].findIndex((c: string) => c === 'הערות'),
+                value: comment
+            }],
+            appendSheetId: 1070971626,
+            appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
+        });
+
+        setShowMessage(true);
+        setIsSuccess(response);
+        setMessage(response ? msg : `בעיה בעדכון אפסון`);
+        await refetch();
+        setIsCreditingInProgress(false);
+    }
+
     const creditButton = selectedRow && groupIndex === 0 && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
@@ -450,6 +533,22 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                         className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
                 </span>
             ) : 'זיכוי חייל'}
+        </button>
+    );
+
+    const storedButton = selectedRow && groupIndex === 0 && (
+        <button
+            className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
+            onClick={() => handleStoredSoldier(selectedRow)}
+            disabled={isCreditingInProgress}
+        >
+            {isCreditingInProgress ? (
+                <span className="flex items-center">
+                    מעבד...
+                    <span
+                        className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                </span>
+            ) : 'איפסון'}
         </button>
     );
 
@@ -522,7 +621,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                 const headers = sheetQueryData.values[0];
                 const rows = sheetQueryData.values.slice(1);
 
-                const doc = new jsPDF({ orientation: "portrait" });
+                const doc = new jsPDF({orientation: "portrait"});
 
                 // ✅ Load and set Hebrew font
                 doc.addFont('NotoSansHebrew-normal.ttf', 'NotoSansHebrew', 'normal');
@@ -538,12 +637,12 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
 
                     if (values.length > 0) {
                         const mirroredHeader = mirrorHebrewSmart(header);
-                        doc.text(mirroredHeader, 100, currentY, { align: 'center' }); // Align right for Hebrew
+                        doc.text(mirroredHeader, 100, currentY, {align: 'center'}); // Align right for Hebrew
                         currentY += 5;
 
                         autoTable(doc, {
                             startY: currentY,
-                            head: [ "#"],
+                            head: ["#"],
                             body: values.map((val: string) => [
                                 mirrorHebrewSmart(val)
                             ]),
@@ -559,7 +658,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                                 textColor: 255,
                                 halign: 'right',
                             },
-                            margin: { left: 14, right: 14 },
+                            margin: {left: 14, right: 14},
                             didDrawPage: (data: { cursor: { y: number; }; }) => {
                                 currentY = data.cursor.y + 10;
                             },
@@ -575,7 +674,8 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             {isCreditingInProgress ? (
                 <span className="flex items-center">
                 מעבד...
-                <span className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                <span
+                    className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
             </span>
             ) : 'הורדת טופס'}
         </button>
@@ -588,6 +688,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
 
             <TabsNavigation sheets={currentGroup.sheets} activeTabIndex={activeTabIndex} onTabChange={handleTabChange}
                             creditButton={creditButton}
+                            storedButton={storedButton}
                             assignWeaponButton={assignWeaponButton} addWeaponOrOptic={addWeaponOrOptic}
                             addNewSerialWeaponOrOptic={addNewSerialWeaponOrOptic} addOpticToGroup={addOpticToGroup}
                             downloadSadbaData={downloadSadbaData}
@@ -700,11 +801,11 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                     <p className="font-bold">Error:</p>
                     <p>{error.message ? 'Failed to fetch sheet data' : ''}</p>
                 </div>
-            ) : [ 'טבלת נשקיה'].includes(selectedSheet.name) ? (
+            ) : ['טבלת נשקיה'].includes(selectedSheet.name) ? (
                 <SummaryComponent accessToken={accessToken}/>
             ) : selectedSheet.name.includes('ציוד') ? (
-                    <Equipment accessToken={accessToken} selectedSheet={selectedSheet}
-                    />
+                <Equipment accessToken={accessToken} selectedSheet={selectedSheet}
+                />
             ) : sheetData.length > 0 || isCreditingInProgress ? (
                 <SheetDataGrid accessToken={accessToken} columnDefs={columnDefs} rowData={sheetData}
                                selectedSheet={selectedSheet} onRowSelected={setSelectedRow}
