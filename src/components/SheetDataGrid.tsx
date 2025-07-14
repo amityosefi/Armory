@@ -533,7 +533,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             anotherUpdate = {
                 sheetId: 1158402644,
                 rowIndex: option.rowIndex,
-                colIndex: incomingColumnDefs.findIndex(c => c.field === "סוג_נשק"),
+                colIndex: option.colIndex,
                 value: ""
             };
 
