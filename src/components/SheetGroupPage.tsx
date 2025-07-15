@@ -505,7 +505,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     const handleCreditWithRow = async (selectedRow: any) => {
 
         setIsCreditingInProgress(true);
-        const msg = 'החייל ' + selectedRow['שם החייל'] + ' לקח נשק ' + selectedRow['סוג נשק'] + " " + selectedRow['מסד'];
+        const msg = 'החייל ' + selectedRow['שם_מלא'] + ' לקח נשק ' + selectedRow['סוג_נשק'] + " " + selectedRow['מסד'];
         const userEmail = localStorage.getItem('userEmail');
 
         const response = await GoogleSheetsService.updateCalls({
@@ -604,7 +604,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             setPendingCreditRow(selectedRow);
             setShowSignaturePrompt(true);
         } else {
-            msg += 'איפסן נשק ' + selectedRow['סוג_נשק'] + ' ' + selectedRow['מסד'];
+            msg += ' איפסן נשק ' + selectedRow['סוג_נשק'] + ' ' + selectedRow['מסד'];
             comment = 'מאופסן';
 
             const userEmail = localStorage.getItem('userEmail');
@@ -813,7 +813,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             addRowToPDF(row, doc, index);
         });
 
-        const filename = `חתימות_מרוכזות_${new Date().toLocaleDateString('he-IL')}.pdf`;
+        const filename = `חתימות_מרוכזות_${selectedSheet.name}.pdf`;
         doc.save(filename);
     }
 

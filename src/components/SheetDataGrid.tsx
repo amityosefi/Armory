@@ -441,13 +441,6 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     colIndex: incomingColumnDefs.findIndex(col => col.field === 'סוג_נשק'),
                     value: ""
                 }
-                update.push(
-                {
-                    sheetId: sheetid,
-                    rowIndex: rowCol.row,
-                    colIndex: rowCol.col,
-                    value: event.value
-                });
             }
                 update.push(
                 {
