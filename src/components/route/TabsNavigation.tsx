@@ -13,7 +13,7 @@ interface TabsNavigationProps {
     addNewSerialWeaponOrOptic?: React.ReactNode;
     addOpticToGroup?: React.ReactNode;
     downloadSadbaData?: React.ReactNode;
-    // showSoldierModal?: React.ReactNode;
+    downloadGroupData?: React.ReactNode;
 
 }
 
@@ -28,8 +28,8 @@ function TabsNavigation({
                             addWeaponOrOptic,
                             addNewSerialWeaponOrOptic,
                             addOpticToGroup,
-                            downloadSadbaData
-                            // showSoldierModal
+                            downloadSadbaData,
+                            downloadGroupData
 
                         }: TabsNavigationProps) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -100,7 +100,7 @@ function TabsNavigation({
                 {addNewSerialWeaponOrOptic}
                 {addOpticToGroup}
                 {downloadSadbaData}
-                {/*{showSoldierModal}*/}
+                {downloadGroupData}
             </div>
         </div>
     );

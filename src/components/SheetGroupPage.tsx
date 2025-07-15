@@ -58,7 +58,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         colIndex: number
     } | null>(null);
     const encodedRange = selectedSheet ? encodeURIComponent(selectedSheet.range) : '';
-    const isGroupSheet = () => ['א', 'ב', 'ג', 'מסייעת', 'מכלול', 'פלסם', 'אלון'].includes(currentGroup.sheets[groupIndex]?.range);
+    const isGroupSheet = () => currentGroup.name === 'פלוגות';
     const {data: sheetQueryData, isLoading, error, refetch} = useGoogleSheetData(
         {accessToken, range: encodedRange},
         {processData: false, enabled: !!accessToken && !!encodedRange}
@@ -314,6 +314,21 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             setIsCreditingInProgress(false);
         }
     };
+
+    const mirrorHebrew = (str: string): string => {
+        if (!str) return '';
+
+        // Split into words
+        return str
+            .split(/\s+/)
+            .map((word) => {
+                const isHebrew = [...word].some((char) => /[\u0590-\u05FF]/.test(char));
+                return isHebrew ? [...word].reverse().join('') : word;
+            })
+            .reverse() // Reverse word order
+            .join(' ');
+    };
+
 
     const mirrorHebrewSmart = (str: string): string => {
         if (!str) return '';
@@ -676,6 +691,148 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         </button>
     );
 
+    const addRowToPDF = (row: any, doc: jsPDF, pageIndex: number) => {
+        if (pageIndex > 0) {
+            doc.addPage();
+        }
+
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 10;
+        let y = 10;
+
+        doc.addFont('NotoSansHebrew-normal.ttf', 'NotoSansHebrew', 'normal');
+        doc.setFont('NotoSansHebrew');
+        doc.setFontSize(12);
+
+        doc.setFontSize(18);
+        doc.text(mirrorHebrew('טופס חיתמת חייל גדוד .1018'), pageWidth / 2, y, { align: 'center' });
+        y += 10;
+
+        const dateStr = new Date().toLocaleString('he-IL').split(' ');
+        doc.setFontSize(10);
+        doc.text(mirrorHebrew(`שם מלא: ${row['שם_מלא'] || ''}`), pageWidth - margin, y, { align: 'right' });
+        doc.text(mirrorHebrew('תאריך נוכחי: '), margin, y, { align: 'left' });
+
+        y += 10;
+        doc.text(mirrorHebrew(`מספר אישי: ${row['מספר_אישי'] || ''}`), pageWidth - margin, y, { align: 'right' });
+        doc.text(dateStr[1] + ' ' + dateStr[0], margin, y, { align: 'left' });
+
+        y += 10;
+        doc.text(mirrorHebrew('תאריך חתימה: '), margin, y, { align: 'left' });
+        y += 10;
+        doc.text(mirrorHebrew(row['זמן_חתימה']), margin, y, { align: 'left' });
+
+        y += 15;
+
+        autoTable(doc, {
+            startY: y,
+            body: [[
+                mirrorHebrewSmart('שם מלא'),
+                mirrorHebrewSmart('מספר אישי'),
+                mirrorHebrewSmart('פלוגה'),
+                mirrorHebrewSmart('פלאפון')
+            ],
+                [
+                    mirrorHebrew(row['שם_מלא'] || ''),
+                    row['מספר_אישי'] || '',
+                    mirrorHebrewSmart(String(selectedSheet.name)),
+                    row['פלאפון'] || ''
+                ]],
+            styles: {
+                font: 'NotoSansHebrew',
+                halign: 'right',
+            },
+            headStyles: {
+                halign: 'right',
+            },
+            margin: { left: margin, right: margin },
+        });
+
+        // @ts-ignore
+        y = doc.lastAutoTable.finalY + 15;
+        const notes = [
+            'הנני מצהיר/ה כי ביצעתי מטווח יום + לילה בסוג הנשק הנ״ל שעליו אני חותם.',
+            'הנני בקיא בהפעלתו ובהוראות הבטיחות בנושא אחזקת הנשק כולל שימוש במק פורק.',
+            'הנשק יוחזר לנשקייה נקי ומשומן - ואחת לחודש יבצע בדיקת נשק.',
+            'החייל/ת ביצע/ה בוחן לנשק אישי ובוחן למק פורק.',
+            'הנשק ינופק באישור השלישות.',
+        ];
+
+        doc.setFontSize(12);
+        notes.forEach((line, i) => {
+            doc.text(`${mirrorHebrew(line)} •`, pageWidth - margin, y + i * 8, { align: 'right' });
+        });
+
+        y += 65;
+        doc.setFontSize(12);
+        doc.text(mirrorHebrew('חתימת החייל'), pageWidth / 2, y, { align: 'center' });
+
+        if (row['חתימה']) {
+            try {
+                doc.addImage(row['חתימה'], 'PNG', pageWidth / 2 - 40, y, 80, 50);
+            } catch (e) {
+                console.error('Error adding signature:', e);
+            }
+        }
+
+        y += 55;
+
+        const kvPairs = Object.entries(row)
+            .filter(([key, val]) =>
+                val &&
+                !['חתימה', 'rowIndex', 'rowRealIndex', 'מסד', 'מספר_אישי', 'שם_מלא', 'פלאפון', 'זמן_חתימה'].includes(key)
+            )
+            .map(([key, val]) => {
+                if (key === 'סוג_נשק') {
+                    const weaponType = String(val).replace(/_/g, ' ');
+                    const serialNumber = row['מסד'] || '';
+                    return [
+                        mirrorHebrewSmart(String(serialNumber)),
+                        mirrorHebrewSmart(weaponType)
+                    ];
+                }
+                return [
+                    mirrorHebrewSmart(String(val)),
+                    mirrorHebrewSmart(String(key).replace(/_/g, ' '))
+                ];
+            });
+
+        autoTable(doc, {
+            startY: y,
+            body: [...[[mirrorHebrewSmart('מסד'), mirrorHebrewSmart('אמצעי')]], ...kvPairs],
+            styles: { font: 'NotoSansHebrew', halign: 'right' },
+            margin: { left: margin, right: margin },
+        });
+    };
+
+
+    function downLoadSoldiersToPDF() {
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+        sheetData.forEach((row: any, index: number) => {
+            addRowToPDF(row, doc, index);
+        });
+
+        const filename = `חתימות_מרוכזות_${new Date().toLocaleDateString('he-IL')}.pdf`;
+        doc.save(filename);
+    }
+
+
+    const downloadGroupData = isGroupSheet() && (
+        <button
+            className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
+            onClick={() => downLoadSoldiersToPDF()}
+        >
+            {isCreditingInProgress ? (
+                <span className="flex items-center">
+                    מעבד...
+                    <span
+                        className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                </span>
+            ) : 'הורדה לקלסר'}
+        </button>
+    );
+
     const addWeaponOrOptic = ['מלאי נשקיה', 'מלאי אופטיקה'].includes(selectedSheet.range) && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
@@ -786,6 +943,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                             assignWeaponButton={assignWeaponButton} addWeaponOrOptic={addWeaponOrOptic}
                             addNewSerialWeaponOrOptic={addNewSerialWeaponOrOptic} addOpticToGroup={addOpticToGroup}
                             downloadSadbaData={downloadSadbaData}
+                            downloadGroupData={downloadGroupData}
                 // showSoldierModal={showSoldierModal}
             />
 
@@ -804,7 +962,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                             ×
                         </button>
 
-                        <h3 className="text-lg font-semibold mb-2">חתימת החייל לפני איפסון</h3>
+                        <h3 className="text-lg font-semibold mb-2">חתימת החייל לקבלת הנשק</h3>
 
                         <SignatureCanvas
                             ref={sigPadRef}
