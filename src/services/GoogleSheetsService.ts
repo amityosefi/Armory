@@ -212,7 +212,6 @@ static async searchAcrossAllSheets({
         try {
             const defaultSpreadSheet = isArmory ? DEFAULT_SPREADSHEET_ID : DEFAULT_SPREADSHEET_ID_EQUIPMENT;
 
-
             const requests: any[] = [];
             // Add updateCells requests
             for (const update of updates) {

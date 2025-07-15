@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {useParams} from 'react-router-dom';
 import TabsNavigation from './route/TabsNavigation';
 import SheetDataGrid from './SheetDataGrid';
@@ -20,6 +20,7 @@ import AddOpticToGroupColumn from "./AddOpticToGroupColumn";
 import {useNavigate} from "react-router-dom";
 import SummaryComponent from "./SummaryComponent";
 import Equipment from "./Equipment";
+import SignatureCanvas from "react-signature-canvas";
 
 interface SheetGroupPageProps {
     accessToken: string;
@@ -96,6 +97,36 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         }
     );
 
+    const modalRef = useRef<HTMLDivElement>(null);
+    const [showSignaturePrompt, setShowSignaturePrompt] = useState(false);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                setShowSignaturePrompt(false);
+                setIsCreditingInProgress(false);
+            }
+        };
+
+        const handleClickOutside = (e: MouseEvent) => {
+            if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+                setShowSignaturePrompt(false);
+                setIsCreditingInProgress(false);
+            }
+        };
+
+        if (showSignaturePrompt) {
+            document.addEventListener("keydown", handleKeyDown);
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("keydown", handleKeyDown);
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showSignaturePrompt]);
+
+
     const doc = new jsPDF();
     doc.setFont('NotoSansHebrew'); // use your font
 
@@ -109,6 +140,11 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
 
     const [promptNewWeaponOrOptic, setPromptNewWeaponOrOptic] = useState(false);
     const [newSerialWeaponOrOptic, setNewSerialWeaponOrOptic] = useState(false);
+
+    const sigPadRef = useRef<SignatureCanvas>(null);
+    const [signature, setSignature] = useState<string | null>(null);
+    const [pendingCreditRow, setPendingCreditRow] = useState<any>(null);
+
 
     useEffect(() => {
         // Update activeTabIndex if the URL's sheetIndex changes
@@ -141,6 +177,19 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             setSheetData(processed);
         }
     }, [sheetQueryData, isLoading]);
+
+    const saveSignature = () => {
+        if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
+            const dataURL = sigPadRef.current.getCanvas().toDataURL("image/png");
+            setSignature(dataURL);
+        }
+    };
+
+    const clearSignature = () => {
+        sigPadRef.current?.clear();
+        setSignature(null);
+    };
+
 
 
     const handleTabChange = (newSheetIndex: number) => {
@@ -195,6 +244,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             accessToken,
             updates: update,
             appendSheetId: 1070971626,
+            isArmory: true,
             appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail || '']],
             secondAppendSheetId: formValues.group,
             secondAppendValues: [[formValues.fullName, String(formValues.personalNumber), String(formValues.phone), formValues.signature, new Date().toLocaleString('he-IL'), formValues.weaponName, optic, formValues.serialNumber]]
@@ -249,6 +299,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                     accessToken: accessToken,
                     updates: [],
                     appendSheetId: 1070971626,
+                    isArmory: true,
                     appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']]
                 });
             refetch();
@@ -314,6 +365,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                     accessToken: accessToken,
                     updates: updates,
                     appendSheetId: 1070971626,
+                    isArmory: true,
                     appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']],
 
                 }
@@ -354,13 +406,13 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             response = await GoogleSheetsService.updateCalls({
                     accessToken: accessToken,
                     updates: [{
-
                         sheetId: selectedSheet.id,
                         rowIndex: 0,
                         colIndex: columnDefs.map(row => row.headerName).length,
                         value: chosenNewOptic
                     }],
                     appendSheetId: 1070971626,
+                    isArmory: true,
                     appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']],
 
                 }
@@ -418,6 +470,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                 accessToken: accessToken,
                 updates: updates,
                 appendSheetId: 1070971626,
+                isArmory: true,
                 appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']],
 
             }
@@ -433,6 +486,45 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         refetchOptics();
         refetchWeapons();
     }
+
+    const handleCreditWithRow = async (selectedRow: any) => {
+
+        setIsCreditingInProgress(true);
+        const msg = 'החייל ' + selectedRow['שם החייל'] + ' לקח נשק ' + selectedRow['סוג נשק'] + " " + selectedRow['מסד'];
+        const userEmail = localStorage.getItem('userEmail');
+
+        const response = await GoogleSheetsService.updateCalls({
+            accessToken: accessToken,
+            updates: [{
+                sheetId: selectedSheet.id,
+                rowIndex: selectedRow['rowRealIndex'] + 1,
+                colIndex: sheetQueryData.values[0].findIndex((c: string) => c === 'הערות'),
+                value: ''
+            },
+                {
+                    sheetId: selectedSheet.id,
+                    rowIndex: selectedRow['rowRealIndex'] + 1,
+                    colIndex: sheetQueryData.values[0].findIndex((c: string) => c === 'זמן חתימה'),
+                    value: new Date().toLocaleString('he-IL')
+                },
+                {
+                    sheetId: selectedSheet.id,
+                    rowIndex: selectedRow['rowRealIndex'] + 1,
+                    colIndex: sheetQueryData.values[0].findIndex((c: string) => c === 'חתימה'),
+                    value: signature
+                }],
+            appendSheetId: 1070971626,
+            isArmory: true,
+            appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ?? ""]]
+        });
+
+        setShowMessage(true);
+        setIsSuccess(response);
+        setMessage(response ? msg : `בעיה בעדכון אפסון`);
+        await refetch();
+        setIsCreditingInProgress(false);
+    };
+
 
     async function handleStoredSoldier(selectedRow: any) {
 
@@ -491,32 +583,35 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
 
 
         setIsCreditingInProgress(true);
-        let msg = 'החייל ' + selectedRow['שם_מלא'] + ' ';
         let comment = '';
+        let msg = 'החייל ' + selectedRow['שם_מלא'];
         if (selectedRow['הערות'] === 'מאופסן') {
-            msg += 'לקח נשק ' + selectedRow['סוג_נשק'] + ' ' + selectedRow['מסד'] + ' מאפסון';
+            setPendingCreditRow(selectedRow);
+            setShowSignaturePrompt(true);
         } else {
             msg += 'איפסן נשק ' + selectedRow['סוג_נשק'] + ' ' + selectedRow['מסד'];
             comment = 'מאופסן';
-        }
-        const userEmail = localStorage.getItem('userEmail');
-        const response = await GoogleSheetsService.updateCalls({
-            accessToken: accessToken,
-            updates: [{
-                sheetId: selectedSheet.id,
-                rowIndex: selectedRow['rowRealIndex'] + 1,
-                colIndex: sheetQueryData.values[0].findIndex((c: string) => c === 'הערות'),
-                value: comment
-            }],
-            appendSheetId: 1070971626,
-            appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
-        });
 
-        setShowMessage(true);
-        setIsSuccess(response);
-        setMessage(response ? msg : `בעיה בעדכון אפסון`);
-        await refetch();
-        setIsCreditingInProgress(false);
+            const userEmail = localStorage.getItem('userEmail');
+            const response = await GoogleSheetsService.updateCalls({
+                accessToken: accessToken,
+                updates: [{
+                    sheetId: selectedSheet.id,
+                    rowIndex: selectedRow['rowRealIndex'] + 1,
+                    colIndex: sheetQueryData.values[0].findIndex((c: string) => c === 'הערות'),
+                    value: comment
+                }],
+                appendSheetId: 1070971626,
+                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]],
+                isArmory: true
+            });
+
+            setShowMessage(true);
+            setIsSuccess(response);
+            setMessage(response ? msg : `בעיה בעדכון אפסון`);
+            await refetch();
+            setIsCreditingInProgress(false);
+        }
     }
 
     const creditButton = selectedRow && groupIndex === 0 && (
@@ -693,6 +788,62 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                             downloadSadbaData={downloadSadbaData}
                 // showSoldierModal={showSoldierModal}
             />
+
+            {showSignaturePrompt && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div
+                        ref={modalRef}
+                        className="relative bg-white p-6 rounded shadow-xl w-[360px] text-right"
+                    >
+                        {/* Exit button */}
+                        <button
+                            className="absolute top-2 left-2 text-red-600 text-xl font-bold"
+                            onClick={() => setShowSignaturePrompt(false)}
+                            aria-label="סגור חתימה"
+                        >
+                            ×
+                        </button>
+
+                        <h3 className="text-lg font-semibold mb-2">חתימת החייל לפני איפסון</h3>
+
+                        <SignatureCanvas
+                            ref={sigPadRef}
+                            penColor="black"
+                            onEnd={saveSignature}
+                            canvasProps={{
+                                width: 300,
+                                height: 150,
+                                className: "border border-gray-300 rounded",
+                                style: { direction: "ltr" },
+                            }}
+                            clearOnResize={false}
+                            backgroundColor="white"
+                        />
+
+                        <div className="mt-2 flex justify-between">
+                            <button
+                                onClick={clearSignature}
+                                className="text-sm text-red-600 hover:underline"
+                            >
+                                נקה חתימה
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (!signature) {
+                                        alert("נא לחתום קודם");
+                                        return;
+                                    }
+                                    setShowSignaturePrompt(false);
+                                    handleCreditWithRow(pendingCreditRow);
+                                }}
+                                className="bg-green-600 text-white px-4 py-1 rounded"
+                            >
+                                אשר חתימה והמשך
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {addOpticColumn && (
                 <AddOpticToGroupColumn

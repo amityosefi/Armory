@@ -170,6 +170,7 @@ const SoldierPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                         colIndex,
                         value: editableFields[fieldName] ?? ""
                     }],
+                    isArmory: true,
                     appendSheetId: 1070971626,
                     appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
                 });
@@ -451,6 +452,7 @@ const SoldierPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                 accessToken: accessToken,
                 updates: updates,
                 appendSheetId: 1070971626,
+                isArmory: true,
                 appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
             });
 
@@ -521,6 +523,7 @@ const SoldierPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                 accessToken: accessToken,
                 updates: updates,
                 appendSheetId: 1070971626,
+                isArmory: true,
                 appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]],
                 secondAppendSheetId: sheetId('מלאי אופטיקה'),
                 secondAppendValues: [GoogleSheetsService.generatePaddedArray(rowCol.col, opticValue)]
