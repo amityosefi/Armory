@@ -58,7 +58,6 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     } | null>(null);
     const encodedRange = selectedSheet ? encodeURIComponent(selectedSheet.range) : '';
     const isGroupSheet = () => ['א', 'ב', 'ג', 'מסייעת', 'מכלול', 'פלסם', 'אלון'].includes(currentGroup.sheets[groupIndex]?.range);
-
     const {data: sheetQueryData, isLoading, error, refetch} = useGoogleSheetData(
         {accessToken, range: encodedRange},
         {processData: false, enabled: !!accessToken && !!encodedRange}
@@ -803,7 +802,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                 </div>
             ) : ['טבלת נשקיה'].includes(selectedSheet.name) ? (
                 <SummaryComponent accessToken={accessToken}/>
-            ) : selectedSheet.name.includes('ציוד') ? (
+            ) : currentGroup.name === 'לוגיסטיקה' ? (
                 <Equipment accessToken={accessToken} selectedSheet={selectedSheet}
                 />
             ) : sheetData.length > 0 || isCreditingInProgress ? (

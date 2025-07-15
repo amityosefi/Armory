@@ -1,4 +1,4 @@
-import {DEFAULT_SPREADSHEET_ID} from "../constants";
+import {DEFAULT_SPREADSHEET_ID, DEFAULT_SPREADSHEET_ID_EQUIPMENT} from "../constants";
 import { sheetGroups } from "../constants";
 
 type SheetData = {
@@ -10,10 +10,11 @@ type SheetData = {
 
 class GoogleSheetsService {
 
-    static async fetchSheetData(accessToken: string, range: string) {
+    static async fetchSheetData(accessToken: string, range: string, isArmory: boolean | undefined) {
         try {
+            const defaultSpreadSheet = isArmory || isArmory === undefined ? DEFAULT_SPREADSHEET_ID : DEFAULT_SPREADSHEET_ID_EQUIPMENT;
             const response = await fetch(
-                `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}/values/${range}`,
+                `https://sheets.googleapis.com/v4/spreadsheets/${defaultSpreadSheet}/values/${range}`,
                 {
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
@@ -192,6 +193,7 @@ static async searchAcrossAllSheets({
                                  appendValues,
                                  secondAppendSheetId,
                                  secondAppendValues,
+                                 isArmory
                              }: {
         accessToken: string;
         updates: {
@@ -204,9 +206,12 @@ static async searchAcrossAllSheets({
         appendValues: string[][];
         secondAppendSheetId?: number;
         secondAppendValues?: string[][];
+        isArmory?: boolean
     }) {
 
         try {
+            const defaultSpreadSheet = isArmory ? DEFAULT_SPREADSHEET_ID : DEFAULT_SPREADSHEET_ID_EQUIPMENT;
+
 
             const requests: any[] = [];
             // Add updateCells requests
@@ -264,7 +269,7 @@ static async searchAcrossAllSheets({
             }
 
             const res = await fetch(
-                `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}:batchUpdate`,
+                `https://sheets.googleapis.com/v4/spreadsheets/${defaultSpreadSheet}:batchUpdate`,
                 {
                     method: "POST",
                     headers: {
