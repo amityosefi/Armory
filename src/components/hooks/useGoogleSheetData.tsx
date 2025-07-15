@@ -2,14 +2,17 @@ import { useQuery } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import GoogleSheetsService from '../../services/GoogleSheetsService';
 
-interface SheetDataParams {
+type SheetDataParams = {
   accessToken: string;
   range: string;
-}
+  isArmory?: boolean;
+};
 
-interface UseGoogleSheetDataOptions extends Omit<UseQueryOptions<any, Error, any, string[]>, 'queryFn' | 'queryKey'> {
+type UseGoogleSheetDataOptions = {
   processData?: boolean;
-}
+  enabled?: boolean;
+  // any other react-query options you pass
+};
 
 /**
  * React Query hook for fetching Google Sheet data
@@ -19,18 +22,19 @@ interface UseGoogleSheetDataOptions extends Omit<UseQueryOptions<any, Error, any
  * @returns Query result containing sheet data
  */
 export function useGoogleSheetData(
-  params: SheetDataParams,
-  options: UseGoogleSheetDataOptions = { processData: true }
+    params: SheetDataParams,
+    options: UseGoogleSheetDataOptions = { processData: true }
 ) {
-  const { accessToken, range, processData = true } = { ...params, ...options };
-  
+  const { accessToken, range, isArmory } = params;
+  const { processData = true, ...restOptions } = options;
+
   return useQuery({
-    queryKey: ['googleSheet', range],
+    queryKey: ['googleSheet', range, isArmory],
     queryFn: async () => {
-      const data = await GoogleSheetsService.fetchSheetData(accessToken, range);
+      const data = await GoogleSheetsService.fetchSheetData(accessToken, range, isArmory);
       return processData ? GoogleSheetsService.processSheetData(data) : data;
     },
     enabled: !!accessToken && !!range,
-    ...options
+    ...restOptions
   });
 }
