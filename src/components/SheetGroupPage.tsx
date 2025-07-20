@@ -543,58 +543,62 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
 
     async function handleStoredSoldier(selectedRow: any) {
 
-//         const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-//
-//         doc.addFont('NotoSansHebrew-normal.ttf', 'NotoSansHebrew', 'normal');
-//         doc.setFont('NotoSansHebrew');
-//
-//         const tablesPerPage = 12;
-//         const tablesPerColumn = 4;
-//         const rowHeight = 65; // height per table including margin between
-//         const columnX = [10, 75, 140]; // X positions for 3 columns
-//
-//         const data = sheetQueryData.values;
-//
-//         data.forEach((row, index) => {
-//             const indexInPage = index % tablesPerPage;
-//             const column = Math.floor(indexInPage / tablesPerColumn);
-//             const positionInColumn = indexInPage % tablesPerColumn;
-//
-//             if (indexInPage === 0 && index !== 0) {
-//                 doc.addPage();
-//             }
-//             const startY = 10 + positionInColumn * rowHeight;
-//             const startX = columnX[column];
-//
-//             autoTable(doc, {
-//                 startY,
-//                 margin: { left: startX },
-//                 tableLineWidth: 0.4,
-//                 body: [
-//                     [mirrorHebrewSmart(selectedSheet.name)],
-//                     [mirrorHebrewSmart(row[0])],
-//                     [mirrorHebrewSmart(row[5])],
-//                     [row[7]],
-//                     [mirrorHebrewSmart(row[6])],
-//                     [String(index)],
-//                 ],
-//                 styles: {
-//                     font: 'NotoSansHebrew',
-//                     fontSize: 15,
-//                     halign: 'right',
-//                     textColor: 0,
-//                     lineWidth: 0.4,
-//                 },
-//                 bodyStyles: {
-//                     textDirection: 'rtl',
-//                     valign: 'middle',
-//                 },
-//                 tableWidth: 60,
-//                 theme: 'grid',
-//             });
-//         });
-//
-//         doc.save('soldiers.pdf');
+        // const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        //
+        // doc.addFont('NotoSansHebrew-normal.ttf', 'NotoSansHebrew', 'normal');
+        // doc.setFont('NotoSansHebrew');
+        //
+        // const tablesPerPage = 12;
+        // const tablesPerColumn = 4;
+        // const rowHeight = 65; // height per table including margin between
+        // const columnX = [10, 75, 140]; // X positions for 3 columns
+        //
+        // const data = sheetQueryData.values;
+        //
+        // data.forEach((row, index) => {
+        //     const indexInPage = index % tablesPerPage;
+        //     const column = Math.floor(indexInPage / tablesPerColumn);
+        //     const positionInColumn = indexInPage % tablesPerColumn;
+        //
+        //     if (indexInPage === 0 && index !== 0) {
+        //         doc.addPage();
+        //     }
+        //     const startY = 10 + positionInColumn * rowHeight;
+        //     const startX = columnX[column];
+        //
+        //     autoTable(doc, {
+        //         startY,
+        //         margin: { left: startX },
+        //         tableLineWidth: 0.4,
+        //         body: [
+        //             [mirrorHebrewSmart(selectedSheet.name)],
+        //             [mirrorHebrewSmart(row[0])],
+        //             [mirrorHebrewSmart(row[5])],
+        //             [row[7]],
+        //             [mirrorHebrewSmart(row[6])],
+        //             [String(index)]
+        //         ],
+        //         styles: {
+        //             font: 'NotoSansHebrew',
+        //             fontSize: 15,
+        //             halign: 'right',
+        //             textColor: 255, // White text
+        //             lineWidth: 0.4,
+        //             lineColor: [200, 200, 200], // Light gray borders
+        //
+        //         },
+        //         bodyStyles: {
+        //             textDirection: 'rtl',
+        //             valign: 'middle',
+        //             fillColor: [0, 0, 0], // Black background
+        //             textColor: 255,       // White text
+        //         },
+        //         tableWidth: 60,
+        //         theme: 'grid',
+        //     });
+        // });
+        //
+        // doc.save('פלסם.pdf');
 
 
         setIsCreditingInProgress(true);
@@ -629,7 +633,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         }
     }
 
-    const creditButton = selectedRow && groupIndex === 0 && (
+    const creditButton = selectedRow && false  && groupIndex === 0 && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
             onClick={() => handleCreditSoldier(selectedRow)}
