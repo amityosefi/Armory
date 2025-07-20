@@ -44,7 +44,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       // Try to fetch a minimal amount of data from the spreadsheet to verify access
       const result = await GoogleSheetsService.fetchSheetData(
         token,
-        'א!A1:A1'  // Just request a single cell
+        'א!A1:A1',
+          true// Just request a single cell
       );
 
       // If we get a 401 or 403 error, token is invalid or lacks permission
