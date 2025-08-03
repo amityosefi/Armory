@@ -27,7 +27,7 @@ export const creditSoldier = async (
     // Get data from the armory inventory sheet
     // @ts-ignore
     const encodedArmoryRange = encodeURIComponent(armoryInventorySheet.range);
-    const armoryResult = await GoogleSheetsService.fetchSheetData(accessToken, encodedArmoryRange);
+    const armoryResult = await GoogleSheetsService.fetchSheetData(accessToken, encodedArmoryRange, true);
 
     const weaponType = selectedRow['סוג_נשק'];
     const serial = selectedRow['מסד'];
@@ -67,7 +67,7 @@ export const creditSoldier = async (
     // Get data from the optical inventory sheet
     // @ts-ignore
     const encodedOpticalRange = encodeURIComponent(opticalInventorySheet.range);
-    const opticalResult = await GoogleSheetsService.fetchSheetData(accessToken, encodedOpticalRange);
+    const opticalResult = await GoogleSheetsService.fetchSheetData(accessToken, encodedOpticalRange, true);
     
     if (opticalResult.error) {
       console.log(`Google Sheets API error: ${opticalResult.error.message}`);

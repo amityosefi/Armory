@@ -1,4 +1,4 @@
-import {DEFAULT_SPREADSHEET_ID} from "../constants";
+import {DEFAULT_SPREADSHEET_ID, DEFAULT_SPREADSHEET_ID_EQUIPMENT, PERMISSIONS_SPREADSHEET_ID} from "../constants";
 import { sheetGroups } from "../constants";
 
 type SheetData = {
@@ -10,10 +10,11 @@ type SheetData = {
 
 class GoogleSheetsService {
 
-    static async fetchSheetData(accessToken: string, range: string) {
+    static async fetchSheetData(accessToken: string, range: string, isArmory: boolean | undefined) {
         try {
+            const defaultSpreadSheet = isArmory || isArmory === undefined ? DEFAULT_SPREADSHEET_ID : DEFAULT_SPREADSHEET_ID_EQUIPMENT;
             const response = await fetch(
-                `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}/values/${range}`,
+                `https://sheets.googleapis.com/v4/spreadsheets/${defaultSpreadSheet}/values/${range}`,
                 {
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
@@ -35,6 +36,33 @@ class GoogleSheetsService {
             return false;
         }
     }
+
+    static async fetchUserPermissions(
+        accessToken: string,
+        email: string
+    ): Promise<Record<string, boolean>> {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${PERMISSIONS_SPREADSHEET_ID}/values/Sheet1!A1:Z1000`;
+
+        const res = await fetch(url, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        const data = await res.json();
+        if (!data.values) return {};
+
+        const [headers, ...rows] = data.values;
+        const userRow = rows.find((row: string[]) => row[0]?.toLowerCase() === email.toLowerCase());
+        if (!userRow) return {};
+
+        const permissions: Record<string, boolean> = {};
+
+        headers.forEach((header: string | number, i: number) => {
+            if (i === 0) return; // Skip "Email"
+            permissions[header] = userRow[i] === 'yes';
+        });
+        return permissions;
+    }
+
 
 
 
@@ -192,6 +220,7 @@ static async searchAcrossAllSheets({
                                  appendValues,
                                  secondAppendSheetId,
                                  secondAppendValues,
+                                 isArmory
                              }: {
         accessToken: string;
         updates: {
@@ -200,13 +229,15 @@ static async searchAcrossAllSheets({
             colIndex: number;
             value: string;
         }[] | any;
-        appendSheetId: number;
-        appendValues: string[][];
+        appendSheetId?: number;
+        appendValues?: string[][];
         secondAppendSheetId?: number;
         secondAppendValues?: string[][];
+        isArmory?: boolean
     }) {
 
         try {
+            const defaultSpreadSheet = isArmory ? DEFAULT_SPREADSHEET_ID : DEFAULT_SPREADSHEET_ID_EQUIPMENT;
 
             const requests: any[] = [];
             // Add updateCells requests
@@ -236,18 +267,19 @@ static async searchAcrossAllSheets({
                     },
                 });
             }
-
-            requests.push({
-                appendCells: {
-                    sheetId: appendSheetId,
-                    rows: appendValues.map((row) => ({
-                        values: row.map((cell) => ({
-                            userEnteredValue: {stringValue: cell},
+            if (appendValues !== undefined && appendValues !== undefined) {
+                requests.push({
+                    appendCells: {
+                        sheetId: appendSheetId,
+                        rows: appendValues.map((row) => ({
+                            values: row.map((cell) => ({
+                                userEnteredValue: {stringValue: cell},
+                            })),
                         })),
-                    })),
-                    fields: "*",
-                },
-            });
+                        fields: "*",
+                    },
+                });
+            }
             // Append to second sheet if provided
             if (secondAppendSheetId !== undefined && secondAppendValues !== undefined) {
                 requests.push({
@@ -264,7 +296,7 @@ static async searchAcrossAllSheets({
             }
 
             const res = await fetch(
-                `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_SPREADSHEET_ID}:batchUpdate`,
+                `https://sheets.googleapis.com/v4/spreadsheets/${defaultSpreadSheet}:batchUpdate`,
                 {
                     method: "POST",
                     headers: {

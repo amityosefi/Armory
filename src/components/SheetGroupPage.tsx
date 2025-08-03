@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {useParams} from 'react-router-dom';
 import TabsNavigation from './route/TabsNavigation';
 import SheetDataGrid from './SheetDataGrid';
@@ -19,7 +19,10 @@ import PromptNewSerialWeaponOrOptic from "./PromptNewSerialWeaponOrOptic";
 import AddOpticToGroupColumn from "./AddOpticToGroupColumn";
 import {useNavigate} from "react-router-dom";
 import SummaryComponent from "./SummaryComponent";
-import Equipment from "./Equipment";
+import Equipment from "./Buyer";
+import SignatureCanvas from "react-signature-canvas";
+import {usePermissions} from "@/contexts/PermissionsContext";
+import Munitions from "@/components/Munitions";
 
 interface SheetGroupPageProps {
     accessToken: string;
@@ -35,6 +38,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     const [assignSoldier, setAssignSoldier] = useState(false);
     const [addOpticColumn, setAddOpticColumn] = useState(false);
     const selectedSheet = currentGroup.sheets[activeTabIndex] || currentGroup.sheets[0];
+
 
     const [formValues, setFormValues] = useState({
         fullName: '',
@@ -57,12 +61,13 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         colIndex: number
     } | null>(null);
     const encodedRange = selectedSheet ? encodeURIComponent(selectedSheet.range) : '';
-    const isGroupSheet = () => ['א', 'ב', 'ג', 'מסייעת', 'מכלול', 'פלסם', 'אלון'].includes(currentGroup.sheets[groupIndex]?.range);
-
+    const isGroupSheet = () => currentGroup.name === 'פלוגות';
     const {data: sheetQueryData, isLoading, error, refetch} = useGoogleSheetData(
         {accessToken, range: encodedRange},
         {processData: false, enabled: !!accessToken && !!encodedRange}
     );
+    const { permissions } = usePermissions();
+
     const backgroundClass = isGroupSheet() ? `group-bg-${selectedSheet.range}` : '';
     const navigate = useNavigate();
     const [newWeaponOrOpticName, setNewWeaponOrOpticName] = useState('');
@@ -97,6 +102,36 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         }
     );
 
+    const modalRef = useRef<HTMLDivElement>(null);
+    const [showSignaturePrompt, setShowSignaturePrompt] = useState(false);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                setShowSignaturePrompt(false);
+                setIsCreditingInProgress(false);
+            }
+        };
+
+        const handleClickOutside = (e: MouseEvent) => {
+            if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+                setShowSignaturePrompt(false);
+                setIsCreditingInProgress(false);
+            }
+        };
+
+        if (showSignaturePrompt) {
+            document.addEventListener("keydown", handleKeyDown);
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("keydown", handleKeyDown);
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showSignaturePrompt]);
+
+
     const doc = new jsPDF();
     doc.setFont('NotoSansHebrew'); // use your font
 
@@ -110,6 +145,11 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
 
     const [promptNewWeaponOrOptic, setPromptNewWeaponOrOptic] = useState(false);
     const [newSerialWeaponOrOptic, setNewSerialWeaponOrOptic] = useState(false);
+
+    const sigPadRef = useRef<SignatureCanvas>(null);
+    const [signature, setSignature] = useState<string | null>(null);
+    const [pendingCreditRow, setPendingCreditRow] = useState<any>(null);
+
 
     useEffect(() => {
         // Update activeTabIndex if the URL's sheetIndex changes
@@ -142,6 +182,19 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             setSheetData(processed);
         }
     }, [sheetQueryData, isLoading]);
+
+    const saveSignature = () => {
+        if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
+            const dataURL = sigPadRef.current.getCanvas().toDataURL("image/png");
+            setSignature(dataURL);
+        }
+    };
+
+    const clearSignature = () => {
+        sigPadRef.current?.clear();
+        setSignature(null);
+    };
+
 
 
     const handleTabChange = (newSheetIndex: number) => {
@@ -196,6 +249,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             accessToken,
             updates: update,
             appendSheetId: 1070971626,
+            isArmory: true,
             appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail || '']],
             secondAppendSheetId: formValues.group,
             secondAppendValues: [[formValues.fullName, String(formValues.personalNumber), String(formValues.phone), formValues.signature, new Date().toLocaleString('he-IL'), formValues.weaponName, optic, formValues.serialNumber]]
@@ -250,6 +304,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                     accessToken: accessToken,
                     updates: [],
                     appendSheetId: 1070971626,
+                    isArmory: true,
                     appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']]
                 });
             refetch();
@@ -264,6 +319,21 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             setIsCreditingInProgress(false);
         }
     };
+
+    const mirrorHebrew = (str: string): string => {
+        if (!str) return '';
+
+        // Split into words
+        return str
+            .split(/\s+/)
+            .map((word) => {
+                const isHebrew = [...word].some((char) => /[\u0590-\u05FF]/.test(char));
+                return isHebrew ? [...word].reverse().join('') : word;
+            })
+            .reverse() // Reverse word order
+            .join(' ');
+    };
+
 
     const mirrorHebrewSmart = (str: string): string => {
         if (!str) return '';
@@ -315,6 +385,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                     accessToken: accessToken,
                     updates: updates,
                     appendSheetId: 1070971626,
+                    isArmory: true,
                     appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']],
 
                 }
@@ -355,13 +426,13 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             response = await GoogleSheetsService.updateCalls({
                     accessToken: accessToken,
                     updates: [{
-
                         sheetId: selectedSheet.id,
                         rowIndex: 0,
                         colIndex: columnDefs.map(row => row.headerName).length,
                         value: chosenNewOptic
                     }],
                     appendSheetId: 1070971626,
+                    isArmory: true,
                     appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']],
 
                 }
@@ -419,6 +490,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                 accessToken: accessToken,
                 updates: updates,
                 appendSheetId: 1070971626,
+                isArmory: true,
                 appendValues: [[msg, new Date().toLocaleString('he-IL'), localStorage.getItem('userEmail') || '']],
 
             }
@@ -435,82 +507,35 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         refetchWeapons();
     }
 
-    async function handleStoredSoldier(selectedRow: any) {
-
-//         const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-//
-//         doc.addFont('NotoSansHebrew-normal.ttf', 'NotoSansHebrew', 'normal');
-//         doc.setFont('NotoSansHebrew');
-//
-//         const tablesPerPage = 12;
-//         const tablesPerColumn = 4;
-//         const rowHeight = 65; // height per table including margin between
-//         const columnX = [10, 75, 140]; // X positions for 3 columns
-//
-//         const data = sheetQueryData.values;
-//
-//         data.forEach((row, index) => {
-//             const indexInPage = index % tablesPerPage;
-//             const column = Math.floor(indexInPage / tablesPerColumn);
-//             const positionInColumn = indexInPage % tablesPerColumn;
-//
-//             if (indexInPage === 0 && index !== 0) {
-//                 doc.addPage();
-//             }
-//             const startY = 10 + positionInColumn * rowHeight;
-//             const startX = columnX[column];
-//
-//             autoTable(doc, {
-//                 startY,
-//                 margin: { left: startX },
-//                 tableLineWidth: 0.4,
-//                 body: [
-//                     [mirrorHebrewSmart(selectedSheet.name)],
-//                     [mirrorHebrewSmart(row[0])],
-//                     [mirrorHebrewSmart(row[5])],
-//                     [row[7]],
-//                     [mirrorHebrewSmart(row[6])],
-//                     [String(index)],
-//                 ],
-//                 styles: {
-//                     font: 'NotoSansHebrew',
-//                     fontSize: 15,
-//                     halign: 'right',
-//                     textColor: 0,
-//                     lineWidth: 0.4,
-//                 },
-//                 bodyStyles: {
-//                     textDirection: 'rtl',
-//                     valign: 'middle',
-//                 },
-//                 tableWidth: 60,
-//                 theme: 'grid',
-//             });
-//         });
-//
-//         doc.save('soldiers.pdf');
-
+    const handleCreditWithRow = async (selectedRow: any) => {
 
         setIsCreditingInProgress(true);
-        let msg = 'החייל ' + selectedRow['שם_מלא'] + ' ';
-        let comment = '';
-        if (selectedRow['הערות'] === 'מאופסן') {
-            msg += 'לקח נשק ' + selectedRow['סוג_נשק'] + ' ' + selectedRow['מסד'] + ' מאפסון';
-        } else {
-            msg += 'איפסן נשק ' + selectedRow['סוג_נשק'] + ' ' + selectedRow['מסד'];
-            comment = 'מאופסן';
-        }
+        const msg = 'החייל ' + selectedRow['שם_מלא'] + ' לקח נשק ' + selectedRow['סוג_נשק'] + " " + selectedRow['מסד'];
         const userEmail = localStorage.getItem('userEmail');
+
         const response = await GoogleSheetsService.updateCalls({
             accessToken: accessToken,
             updates: [{
                 sheetId: selectedSheet.id,
                 rowIndex: selectedRow['rowRealIndex'] + 1,
                 colIndex: sheetQueryData.values[0].findIndex((c: string) => c === 'הערות'),
-                value: comment
-            }],
+                value: ''
+            },
+                {
+                    sheetId: selectedSheet.id,
+                    rowIndex: selectedRow['rowRealIndex'] + 1,
+                    colIndex: sheetQueryData.values[0].findIndex((c: string) => c === 'זמן חתימה'),
+                    value: new Date().toLocaleString('he-IL')
+                },
+                {
+                    sheetId: selectedSheet.id,
+                    rowIndex: selectedRow['rowRealIndex'] + 1,
+                    colIndex: sheetQueryData.values[0].findIndex((c: string) => c === 'חתימה'),
+                    value: signature
+                }],
             appendSheetId: 1070971626,
-            appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
+            isArmory: true,
+            appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ?? ""]]
         });
 
         setShowMessage(true);
@@ -518,9 +543,102 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         setMessage(response ? msg : `בעיה בעדכון אפסון`);
         await refetch();
         setIsCreditingInProgress(false);
+    };
+
+
+    async function handleStoredSoldier(selectedRow: any) {
+
+        // const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        //
+        // doc.addFont('NotoSansHebrew-normal.ttf', 'NotoSansHebrew', 'normal');
+        // doc.setFont('NotoSansHebrew');
+        //
+        // const tablesPerPage = 12;
+        // const tablesPerColumn = 4;
+        // const rowHeight = 65; // height per table including margin between
+        // const columnX = [10, 75, 140]; // X positions for 3 columns
+        //
+        // const data = sheetQueryData.values;
+        //
+        // data.forEach((row, index) => {
+        //     const indexInPage = index % tablesPerPage;
+        //     const column = Math.floor(indexInPage / tablesPerColumn);
+        //     const positionInColumn = indexInPage % tablesPerColumn;
+        //
+        //     if (indexInPage === 0 && index !== 0) {
+        //         doc.addPage();
+        //     }
+        //     const startY = 10 + positionInColumn * rowHeight;
+        //     const startX = columnX[column];
+        //
+        //     autoTable(doc, {
+        //         startY,
+        //         margin: { left: startX },
+        //         tableLineWidth: 0.4,
+        //         body: [
+        //             [mirrorHebrewSmart(selectedSheet.name)],
+        //             [mirrorHebrewSmart(row[0])],
+        //             [mirrorHebrewSmart(row[5])],
+        //             [row[7]],
+        //             [mirrorHebrewSmart(row[6])],
+        //             [String(index)]
+        //         ],
+        //         styles: {
+        //             font: 'NotoSansHebrew',
+        //             fontSize: 15,
+        //             halign: 'right',
+        //             textColor: 255, // White text
+        //             lineWidth: 0.4,
+        //             lineColor: [200, 200, 200], // Light gray borders
+        //
+        //         },
+        //         bodyStyles: {
+        //             textDirection: 'rtl',
+        //             valign: 'middle',
+        //             fillColor: [0, 0, 0], // Black background
+        //             textColor: 255,       // White text
+        //         },
+        //         tableWidth: 60,
+        //         theme: 'grid',
+        //     });
+        // });
+        //
+        // doc.save('פלסם.pdf');
+
+
+        setIsCreditingInProgress(true);
+        let comment = '';
+        let msg = 'החייל ' + selectedRow['שם_מלא'];
+        if (selectedRow['הערות'] === 'מאופסן') {
+            setPendingCreditRow(selectedRow);
+            setShowSignaturePrompt(true);
+        } else {
+            msg += ' איפסן נשק ' + selectedRow['סוג_נשק'] + ' ' + selectedRow['מסד'];
+            comment = 'מאופסן';
+
+            const userEmail = localStorage.getItem('userEmail');
+            const response = await GoogleSheetsService.updateCalls({
+                accessToken: accessToken,
+                updates: [{
+                    sheetId: selectedSheet.id,
+                    rowIndex: selectedRow['rowRealIndex'] + 1,
+                    colIndex: sheetQueryData.values[0].findIndex((c: string) => c === 'הערות'),
+                    value: comment
+                }],
+                appendSheetId: 1070971626,
+                appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]],
+                isArmory: true
+            });
+
+            setShowMessage(true);
+            setIsSuccess(response);
+            setMessage(response ? msg : `בעיה בעדכון אפסון`);
+            await refetch();
+            setIsCreditingInProgress(false);
+        }
     }
 
-    const creditButton = selectedRow && groupIndex === 0 && (
+    const creditButton = !permissions?.Plugot && selectedRow && false  && groupIndex === 0 && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
             onClick={() => handleCreditSoldier(selectedRow)}
@@ -536,7 +654,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         </button>
     );
 
-    const storedButton = selectedRow && groupIndex === 0 && (
+    const storedButton = !permissions?.Plugot && selectedRow && groupIndex === 0 &&  (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
             onClick={() => handleStoredSoldier(selectedRow)}
@@ -552,7 +670,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         </button>
     );
 
-    const addOpticToGroup = isGroupSheet() && !selectedRow && (
+    const addOpticToGroup = !permissions?.Plugot && isGroupSheet() && !selectedRow && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
             onClick={() => setAddOpticColumn(true)}
@@ -567,7 +685,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         </button>
     );
 
-    const assignWeaponButton = isGroupSheet() && !selectedRow && (
+    const assignWeaponButton = !permissions?.Plugot && isGroupSheet() && !selectedRow && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
             onClick={() => setAssignSoldier(true)}
@@ -579,6 +697,148 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                         className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
                 </span>
             ) : 'החתמת חייל'}
+        </button>
+    );
+
+    const addRowToPDF = (row: any, doc: jsPDF, pageIndex: number) => {
+        if (pageIndex > 0) {
+            doc.addPage();
+        }
+
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 10;
+        let y = 10;
+
+        doc.addFont('NotoSansHebrew-normal.ttf', 'NotoSansHebrew', 'normal');
+        doc.setFont('NotoSansHebrew');
+        doc.setFontSize(12);
+
+        doc.setFontSize(18);
+        doc.text(mirrorHebrew('טופס חיתמת חייל גדוד .1018'), pageWidth / 2, y, { align: 'center' });
+        y += 10;
+
+        const dateStr = new Date().toLocaleString('he-IL').split(' ');
+        doc.setFontSize(10);
+        doc.text(mirrorHebrew(`שם מלא: ${row['שם_מלא'] || ''}`), pageWidth - margin, y, { align: 'right' });
+        doc.text(mirrorHebrew('תאריך נוכחי: '), margin, y, { align: 'left' });
+
+        y += 10;
+        doc.text(mirrorHebrew(`מספר אישי: ${row['מספר_אישי'] || ''}`), pageWidth - margin, y, { align: 'right' });
+        doc.text(dateStr[1] + ' ' + dateStr[0], margin, y, { align: 'left' });
+
+        y += 10;
+        doc.text(mirrorHebrew('תאריך חתימה: '), margin, y, { align: 'left' });
+        y += 10;
+        doc.text(mirrorHebrew(row['זמן_חתימה']), margin, y, { align: 'left' });
+
+        y += 15;
+
+        autoTable(doc, {
+            startY: y,
+            body: [[
+                mirrorHebrewSmart('שם מלא'),
+                mirrorHebrewSmart('מספר אישי'),
+                mirrorHebrewSmart('פלוגה'),
+                mirrorHebrewSmart('פלאפון')
+            ],
+                [
+                    mirrorHebrew(row['שם_מלא'] || ''),
+                    row['מספר_אישי'] || '',
+                    mirrorHebrewSmart(String(selectedSheet.name)),
+                    row['פלאפון'] || ''
+                ]],
+            styles: {
+                font: 'NotoSansHebrew',
+                halign: 'right',
+            },
+            headStyles: {
+                halign: 'right',
+            },
+            margin: { left: margin, right: margin },
+        });
+
+        // @ts-ignore
+        y = doc.lastAutoTable.finalY + 15;
+        const notes = [
+            'הנני מצהיר/ה כי ביצעתי מטווח יום + לילה בסוג הנשק הנ״ל שעליו אני חותם.',
+            'הנני בקיא בהפעלתו ובהוראות הבטיחות בנושא אחזקת הנשק כולל שימוש במק פורק.',
+            'הנשק יוחזר לנשקייה נקי ומשומן - ואחת לחודש יבצע בדיקת נשק.',
+            'החייל/ת ביצע/ה בוחן לנשק אישי ובוחן למק פורק.',
+            'הנשק ינופק באישור השלישות.',
+        ];
+
+        doc.setFontSize(12);
+        notes.forEach((line, i) => {
+            doc.text(`${mirrorHebrew(line)} •`, pageWidth - margin, y + i * 8, { align: 'right' });
+        });
+
+        y += 65;
+        doc.setFontSize(12);
+        doc.text(mirrorHebrew('חתימת החייל'), pageWidth / 2, y, { align: 'center' });
+
+        if (row['חתימה']) {
+            try {
+                doc.addImage(row['חתימה'], 'PNG', pageWidth / 2 - 40, y, 80, 50);
+            } catch (e) {
+                console.error('Error adding signature:', e);
+            }
+        }
+
+        y += 55;
+
+        const kvPairs = Object.entries(row)
+            .filter(([key, val]) =>
+                val &&
+                !['חתימה', 'rowIndex', 'rowRealIndex', 'מסד', 'מספר_אישי', 'שם_מלא', 'פלאפון', 'זמן_חתימה'].includes(key)
+            )
+            .map(([key, val]) => {
+                if (key === 'סוג_נשק') {
+                    const weaponType = String(val).replace(/_/g, ' ');
+                    const serialNumber = row['מסד'] || '';
+                    return [
+                        mirrorHebrewSmart(String(serialNumber)),
+                        mirrorHebrewSmart(weaponType)
+                    ];
+                }
+                return [
+                    mirrorHebrewSmart(String(val)),
+                    mirrorHebrewSmart(String(key).replace(/_/g, ' '))
+                ];
+            });
+
+        autoTable(doc, {
+            startY: y,
+            body: [...[[mirrorHebrewSmart('מסד'), mirrorHebrewSmart('אמצעי')]], ...kvPairs],
+            styles: { font: 'NotoSansHebrew', halign: 'right' },
+            margin: { left: margin, right: margin },
+        });
+    };
+
+
+    function downLoadSoldiersToPDF() {
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+        sheetData.forEach((row: any, index: number) => {
+            addRowToPDF(row, doc, index);
+        });
+
+        const filename = `חתימות_מרוכזות_${selectedSheet.name}.pdf`;
+        doc.save(filename);
+    }
+
+
+    const downloadGroupData = !permissions?.Plugot && isGroupSheet() && (
+        <button
+            className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
+            onClick={() => downLoadSoldiersToPDF()}
+        >
+            {isCreditingInProgress ? (
+                <span className="flex items-center">
+                    מעבד...
+                    <span
+                        className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                </span>
+            ) : 'הורדה לקלסר'}
         </button>
     );
 
@@ -692,8 +952,65 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                             assignWeaponButton={assignWeaponButton} addWeaponOrOptic={addWeaponOrOptic}
                             addNewSerialWeaponOrOptic={addNewSerialWeaponOrOptic} addOpticToGroup={addOpticToGroup}
                             downloadSadbaData={downloadSadbaData}
+                            downloadGroupData={downloadGroupData}
                 // showSoldierModal={showSoldierModal}
             />
+
+            {showSignaturePrompt && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div
+                        ref={modalRef}
+                        className="relative bg-white p-6 rounded shadow-xl w-[360px] text-right"
+                    >
+                        {/* Exit button */}
+                        <button
+                            className="absolute top-2 left-2 text-red-600 text-xl font-bold"
+                            onClick={() => setShowSignaturePrompt(false)}
+                            aria-label="סגור חתימה"
+                        >
+                            ×
+                        </button>
+
+                        <h3 className="text-lg font-semibold mb-2">חתימת החייל לקבלת הנשק</h3>
+
+                        <SignatureCanvas
+                            ref={sigPadRef}
+                            penColor="black"
+                            onEnd={saveSignature}
+                            canvasProps={{
+                                width: 300,
+                                height: 150,
+                                className: "border border-gray-300 rounded",
+                                style: { direction: "ltr" },
+                            }}
+                            clearOnResize={false}
+                            backgroundColor="white"
+                        />
+
+                        <div className="mt-2 flex justify-between">
+                            <button
+                                onClick={clearSignature}
+                                className="text-sm text-red-600 hover:underline"
+                            >
+                                נקה חתימה
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (!signature) {
+                                        alert("נא לחתום קודם");
+                                        return;
+                                    }
+                                    setShowSignaturePrompt(false);
+                                    handleCreditWithRow(pendingCreditRow);
+                                }}
+                                className="bg-green-600 text-white px-4 py-1 rounded"
+                            >
+                                אשר חתימה והמשך
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {addOpticColumn && (
                 <AddOpticToGroupColumn
@@ -803,10 +1120,13 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
                 </div>
             ) : ['טבלת נשקיה'].includes(selectedSheet.name) ? (
                 <SummaryComponent accessToken={accessToken}/>
-            ) : selectedSheet.name.includes('ציוד') ? (
+            ) : currentGroup.name === 'לוגיסטיקה' ? (
                 <Equipment accessToken={accessToken} selectedSheet={selectedSheet}
                 />
-            ) : sheetData.length > 0 || isCreditingInProgress ? (
+            ) : currentGroup.name === 'תחמושת' ? (
+                <Munitions accessToken={accessToken} selectedSheet={selectedSheet}
+                />
+            ) : (permissions[selectedSheet.range] || permissions['Armory']) && sheetData.length > 0 || isCreditingInProgress ? (
                 <SheetDataGrid accessToken={accessToken} columnDefs={columnDefs} rowData={sheetData}
                                selectedSheet={selectedSheet} onRowSelected={setSelectedRow}
                                refetch={refetch}/>

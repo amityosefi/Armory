@@ -422,6 +422,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             const userEmail = localStorage.getItem('userEmail');
             const msg = event.row["שם_מלא"] + " זיכה " + event.colName + " " + event.value + " " + selectedSheet.name;
             const columnFields = columnDefs.map(col => col.headerName);
+            const update = [];
             let rowCol;
             let colIndex;
             let sheetid;
@@ -441,19 +442,13 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     value: ""
                 }
             }
-            const update = [
-                // {
-                //     sheetId: sheetid,
-                //     rowIndex: rowCol.row,
-                //     colIndex: rowCol.col,
-                //     value: event.value
-                // },
+                update.push(
                 {
                     sheetId: selectedSheet.id,
                     rowIndex: event.rowIndex + 1,
                     colIndex: incomingColumnDefs.findIndex(col => col.headerName === colIndex),
                     value: ""
-                }];
+                });
             if (anotherUpdate)
                 update.push(anotherUpdate);
 
@@ -463,6 +458,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 appendSheetId: 1070971626,
                 appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]],
                 secondAppendSheetId: sheetid,
+                isArmory: true,
                 secondAppendValues: [GoogleSheetsService.generatePaddedArray(rowCol.col, event.value)],
 
             });
@@ -533,7 +529,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             anotherUpdate = {
                 sheetId: 1158402644,
                 rowIndex: option.rowIndex,
-                colIndex: incomingColumnDefs.findIndex(c => c.field === "סוג_נשק"),
+                colIndex: option.colIndex,
                 value: ""
             };
 
@@ -543,6 +539,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
             accessToken: accessToken,
             updates: updates,
             appendSheetId: 1070971626,
+            isArmory: true,
             appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
         });
         setShowMessage(true);
@@ -593,6 +590,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     value: event.newValue ?? ""
                 }],
                 appendSheetId: 1070971626,
+                isArmory: true,
                 appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
             });
 
@@ -635,6 +633,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 accessToken: accessToken,
                 updates: update,
                 appendSheetId: 1070971626,
+                isArmory: true,
                 appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]],
                 secondAppendSheetId: 1689612813,
                 secondAppendValues: [GoogleSheetsService.generatePaddedArray(rowCol.col, event.value)],
@@ -685,6 +684,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                 accessToken: accessToken,
                 updates: update,
                 appendSheetId: 1070971626,
+                isArmory: true,
                 appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]],
                 secondAppendSheetId: sheetTofireId,
                 secondAppendValues: [GoogleSheetsService.generatePaddedArray(rowCol.col, event.value)],
@@ -720,6 +720,7 @@ const SheetDataGrid: React.FC<SheetDataGridProps> = ({
                     }
                 ],
                 appendSheetId: 1070971626,
+                isArmory: true,
                 appendValues: [[msg, new Date().toLocaleString('he-IL'), userEmail ? userEmail : ""]]
             });
             setShowMessage(true);

@@ -12,7 +12,6 @@ interface NavBarProps {
 
 const NavBar: React.FC<NavBarProps> = ({ sheetGroups, accessToken, onSignOut }) => {
   const isMobile = useIsMobile();
-
   return (
     <>
       {/* Header with title, navigation and sign out button */}
