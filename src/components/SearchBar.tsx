@@ -4,6 +4,7 @@ import type { SheetGroup } from '../types';
 import GoogleSheetsService from '../services/GoogleSheetsService';
 import {sheetGroups} from "../constants";
 import groupNavigation from "./route/GroupNavigation";
+import {usePermissions} from "@/contexts/PermissionsContext";
 
 interface SearchBarProps {
   sheetGroups: SheetGroup[];
@@ -18,7 +19,7 @@ interface SearchResult {
 
 const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
   const navigate = useNavigate();
-  
+  const { permissions } = usePermissions();
   const [searchText, setSearchText] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -55,7 +56,6 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
   }, [showModal]);
 
   const handleClick = (result: SearchResult) => {
-    console.log(result.sheetName);
     const sheetNameToUrl = result.sheetName.replace(/^'(.*)'$/, '$1');
     const sheetsWithIndexes = sheetGroups.flatMap((group, groupIndex) =>
       group.sheets.map((sheet, sheetIndex) => ({
@@ -102,6 +102,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
   return (
     <>
       {/* Search Bar */}
+      {!permissions['Plugot'] && (
       <div className="flex w-full gap-2">
         <input
             type="text"
@@ -114,12 +115,14 @@ const SearchBar: React.FC<SearchBarProps> = ({ sheetGroups, accessToken }) => {
             }}
         />
         <button
-          onClick={handleSearch}
-          className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+            onClick={handleSearch}
+            className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
         >
           חפש
         </button>
       </div>
+      )}
+
 
       {/* Search Results Modal */}
       {showModal && (

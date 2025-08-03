@@ -19,8 +19,10 @@ import PromptNewSerialWeaponOrOptic from "./PromptNewSerialWeaponOrOptic";
 import AddOpticToGroupColumn from "./AddOpticToGroupColumn";
 import {useNavigate} from "react-router-dom";
 import SummaryComponent from "./SummaryComponent";
-import Equipment from "./Equipment";
+import Equipment from "./Buyer";
 import SignatureCanvas from "react-signature-canvas";
+import {usePermissions} from "@/contexts/PermissionsContext";
+import Munitions from "@/components/Munitions";
 
 interface SheetGroupPageProps {
     accessToken: string;
@@ -36,6 +38,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     const [assignSoldier, setAssignSoldier] = useState(false);
     const [addOpticColumn, setAddOpticColumn] = useState(false);
     const selectedSheet = currentGroup.sheets[activeTabIndex] || currentGroup.sheets[0];
+
 
     const [formValues, setFormValues] = useState({
         fullName: '',
@@ -63,6 +66,8 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         {accessToken, range: encodedRange},
         {processData: false, enabled: !!accessToken && !!encodedRange}
     );
+    const { permissions } = usePermissions();
+
     const backgroundClass = isGroupSheet() ? `group-bg-${selectedSheet.range}` : '';
     const navigate = useNavigate();
     const [newWeaponOrOpticName, setNewWeaponOrOpticName] = useState('');
@@ -633,7 +638,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         }
     }
 
-    const creditButton = selectedRow && false  && groupIndex === 0 && (
+    const creditButton = !permissions?.Plugot && selectedRow && false  && groupIndex === 0 && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
             onClick={() => handleCreditSoldier(selectedRow)}
@@ -649,7 +654,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         </button>
     );
 
-    const storedButton = selectedRow && groupIndex === 0 && (
+    const storedButton = !permissions?.Plugot && selectedRow && groupIndex === 0 &&  (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
             onClick={() => handleStoredSoldier(selectedRow)}
@@ -665,7 +670,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         </button>
     );
 
-    const addOpticToGroup = isGroupSheet() && !selectedRow && (
+    const addOpticToGroup = !permissions?.Plugot && isGroupSheet() && !selectedRow && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
             onClick={() => setAddOpticColumn(true)}
@@ -680,7 +685,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
         </button>
     );
 
-    const assignWeaponButton = isGroupSheet() && !selectedRow && (
+    const assignWeaponButton = !permissions?.Plugot && isGroupSheet() && !selectedRow && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
             onClick={() => setAssignSoldier(true)}
@@ -822,7 +827,7 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
     }
 
 
-    const downloadGroupData = isGroupSheet() && (
+    const downloadGroupData = !permissions?.Plugot && isGroupSheet() && (
         <button
             className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
             onClick={() => downLoadSoldiersToPDF()}
@@ -1118,7 +1123,10 @@ const SheetGroupPage: React.FC<SheetGroupPageProps> = ({accessToken, sheetGroups
             ) : currentGroup.name === 'לוגיסטיקה' ? (
                 <Equipment accessToken={accessToken} selectedSheet={selectedSheet}
                 />
-            ) : sheetData.length > 0 || isCreditingInProgress ? (
+            ) : currentGroup.name === 'תחמושת' ? (
+                <Munitions accessToken={accessToken} selectedSheet={selectedSheet}
+                />
+            ) : (permissions[selectedSheet.range] || permissions['Armory']) && sheetData.length > 0 || isCreditingInProgress ? (
                 <SheetDataGrid accessToken={accessToken} columnDefs={columnDefs} rowData={sheetData}
                                selectedSheet={selectedSheet} onRowSelected={setSelectedRow}
                                refetch={refetch}/>

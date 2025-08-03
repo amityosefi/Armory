@@ -9,6 +9,7 @@ import {jsPDF} from "jspdf";
 import autoTable from "jspdf-autotable";
 import StatusMessageProps from "./feedbackFromBackendOrUser/StatusMessageProps";
 import StandaloneComboBox from "./StandaloneComboBox";
+import {usePermissions} from "@/contexts/PermissionsContext";
 
 interface SoldierCardPageProps {
     accessToken: string;
@@ -48,7 +49,7 @@ const SoldierPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
         const [showMessage, setShowMessage] = useState(false);
         const [isSuccess, setIsSuccess] = useState(false);
         const [message, setMessage] = useState('');
-
+        const { permissions } = usePermissions();
         const userEmail = localStorage.getItem('userEmail')
 
         const [selectedOpticColumn, setSelectedOpticColumn] = useState<{
@@ -209,11 +210,11 @@ const SoldierPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
             // Right-up: date and time
             const dateStr = new Date().toLocaleString('he-IL').split(' ');
             doc.setFontSize(10);
-            doc.text(mirrorHebrewSmart(`שם מלא: ${row['שם מלא'] || ''}`), pageWidth - margin, y, {align: 'right'});
+            doc.text(mirrorHebrewSmart(`${row['שם מלא'] || ''}`), pageWidth - margin, y, {align: 'right'});
             doc.text(mirrorHebrewSmart('תאריך נוכחי: '), margin, y, {align: 'left'});
 
             y += 10;
-            doc.text(mirrorHebrewSmart(`מספר אישי: ${row['מספר אישי'] || ''}`), pageWidth - margin, y, {align: 'right'});
+            doc.text(row['מספר אישי'] || '' + " " + mirrorHebrewSmart(`מספר אישי: `), pageWidth - margin, y, {align: 'right'});
             doc.text(dateStr[1] + ' ' + dateStr[0], margin, y, {align: 'left'});
 
             y += 10;
@@ -560,10 +561,22 @@ const SoldierPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                                 label="שם מלא"
                                 value={editableFields['שם מלא']}
                                 displayValue={row['שם מלא'] || '-'}
-                                isEditing={editingField === 'שם מלא'}
-                                onEdit={() => handleEditField('שם מלא')}
-                                onChange={(val) => handleFieldChange('שם מלא', val)}
-                                onSave={() => handleSaveField('שם מלא')}
+                                isEditing={editingField === 'שם מלא' && !permissions['Plugot']}
+                                onEdit={() => {
+                                    if (!permissions['Plugot']) {
+                                        handleEditField('שם מלא');
+                                    }
+                                }}
+                                onChange={(val) => {
+                                    if (!permissions['Plugot']) {
+                                        handleFieldChange('שם מלא', val);
+                                    }
+                                }}
+                                onSave={() => {
+                                    if (!permissions['Plugot']) {
+                                        handleSaveField('שם מלא');
+                                    }
+                                }}
                             />
                         </h2>
 
@@ -572,19 +585,24 @@ const SoldierPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
 
                     <div className="flex flex-row-reverse gap-4 justify-center mt-8">
 
-                        <button
-                            onClick={handleCreditOptic}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                        >
-                            זיכוי אמרל
-                        </button>
+                        {!permissions['Plugot'] && (
+                            <button
+                                onClick={handleCreditOptic}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                            >
+                                זיכוי אמרל
+                            </button>
+                        )}
 
-                        <button
-                            onClick={handleSignOptic}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                        >
-                            החתמת אמרל
-                        </button>
+                        {!permissions['Plugot'] && (
+                            <button
+                                onClick={handleSignOptic}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                            >
+                                החתמת אמרל
+                            </button>
+                        )}
+
 
                     </div>
                     {showMessage && (
@@ -651,51 +669,72 @@ const SoldierPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                     {/* Info Card */}
                     <div className="mb-6 grid grid-cols-3 md:grid-cols-2 gap-6">
                         <EditableWithPencil
-                            label='מספר אישי'
+                            label="מספר אישי"
                             value={editableFields['מספר אישי']}
                             displayValue={row['מספר אישי'] || '-'}
-                            isEditing={editingField === 'מספר אישי'}
-                            onEdit={() => handleEditField('מספר אישי')}
-                            onChange={val => handleFieldChange('מספר אישי', val)}
-                            onSave={() => handleSaveField('מספר אישי')}
+                            isEditing={editingField === 'מספר אישי' && !permissions['Plugot']}
+                            onEdit={() => {
+                                if (!permissions['Plugot']) {
+                                    handleEditField('מספר אישי');
+                                }
+                            }}
+                            onChange={val => {
+                                if (!permissions['Plugot']) {
+                                    handleFieldChange('מספר אישי', val);
+                                }
+                            }}
+                            onSave={() => {
+                                if (!permissions['Plugot']) {
+                                    handleSaveField('מספר אישי');
+                                }
+                            }}
                         />
+
                         <InfoField label="פלוגה" value={sheetName || ''}/>
                         <EditableWithPencil
                             label="פלאפון"
                             value={editableFields['פלאפון']}
                             displayValue={row['פלאפון'] || '-'}
-                            isEditing={editingField === 'פלאפון'}
-                            onEdit={() => handleEditField('פלאפון')}
-                            onChange={val => handleFieldChange('פלאפון', val)}
-                            onSave={() => handleSaveField('פלאפון')}
+                            isEditing={editingField === 'פלאפון' && !permissions['Plugot']} // only allow editing if NOT Plugot
+                            onEdit={() => {
+                                if (!permissions['Plugot']) {
+                                    handleEditField('פלאפון');
+                                }
+                            }}
+                            onChange={val => {
+                                if (!permissions['Plugot']) {
+                                    handleFieldChange('פלאפון', val);
+                                }
+                            }}
+                            onSave={() => {
+                                if (!permissions['Plugot']) {
+                                    handleSaveField('פלאפון');
+                                }
+                            }}
                         />
-                        <InfoField label="תאריך נוכחי" value={new Date().toLocaleString('he-IL')}/>
+
                         <InfoField label="תאריך חתימה" value={row['זמן חתימה'] || '-'}/>
                         <EditableWithPencil
                             label="הערות"
                             value={editableFields['הערות']}
                             displayValue={row['הערות'] || '-'}
-                            isEditing={editingField === 'הערות'}
-                            onEdit={() => handleEditField('הערות')}
-                            onChange={val => handleFieldChange('הערות', val)}
-                            onSave={() => handleSaveField('הערות')}
+                            isEditing={editingField === 'הערות' && !permissions['Plugot']}
+                            onEdit={() => {
+                                if (!permissions['Plugot']) {
+                                    handleEditField('הערות');
+                                }
+                            }}
+                            onChange={val => {
+                                if (!permissions['Plugot']) {
+                                    handleFieldChange('הערות', val);
+                                }
+                            }}
+                            onSave={() => {
+                                if (!permissions['Plugot']) {
+                                    handleSaveField('הערות');
+                                }
+                            }}
                         />
-                    </div>
-
-                    {/* Signature */}
-                    <div className="text-center mb-6">
-                        <div className="mb-2 font-semibold">חתימת החייל</div>
-                        {row['חתימה'] ? (
-                            <img
-                                src={row['חתימה']}
-                                alt="חתימה"
-                                className="mx-auto border w-40 h-24 object-contain"
-                            />
-                        ) : (
-                            <div className="mx-auto border w-40 h-24 flex items-center justify-center text-gray-400 italic">
-                                אין חתימה
-                            </div>
-                        )}
                     </div>
 
                     <div className="overflow-x-auto mt-4">
@@ -710,7 +749,7 @@ const SoldierPage: React.FC<SoldierCardPageProps> = ({accessToken}) => {
                             {/* Original data from row */}
                             {Object.entries(row)
                                 .filter(([key, value]) => {
-                                    const skipKeys = ['שם מלא', 'מספר אישי', 'פלאפון', 'חתימה', 'זמן חתימה', 'הערות'];
+                                    const skipKeys = ['שם מלא', 'מספר אישי', 'מסד', 'פלאפון', 'חתימה', 'זמן חתימה', 'הערות'];
                                     return !skipKeys.includes(key) && value?.toString().trim();
                                 })
                                 .map(([key, value], index) => {
