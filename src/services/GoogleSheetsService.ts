@@ -165,9 +165,13 @@ static async searchAcrossAllSheets({
         rowIndex: number; // 1-based row index (excluding header)
     }[] = [];
 
-    const sheetTitles = sheetGroups.flatMap((group) =>
+    const sheetTitles = sheetGroups
+        .filter(groupname => groupname.name === 'נשקיה' || groupname.name === 'פלוגות')
+        .flatMap((group) =>
         group.sheets.map((sheet) => sheet.range)
     );
+
+    console.log("Searching in sheets:", sheetTitles);
 
     const rangesParam = sheetTitles.map((title) => `ranges=${encodeURIComponent(title)}`).join("&");
 
